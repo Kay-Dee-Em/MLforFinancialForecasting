@@ -51,19 +51,23 @@ class ImageGenerator:
   freqs: list, default: ['1h', '2h', '4h', '1d'],
       Frequencies for data grouping where array length equals number of images in one image grid
 
+  image_matrix: tuple, default: (2,2)
+      Image matrix dimensions, nrows * ncols >= len(freqs)
+
   cmap: str, default: 'rainbow'
       Colour map for images
   """
 
   def __init__(self,
                data_name: str,
-               project_path: str = os.getcwd(),
-               imgs_dir_name: str = 'GAF', 
+               project_path: str=os.getcwd(),
+               imgs_dir_name: str='GAF', 
                base_freq: str='1h', 
                h_start: str='9:00', 
                h_end: str='16:00', 
                interval: int=20,
                freqs: list=['1h', '2h', '4h', '1d'],
+               image_matrix: tuple=(2,2),
                cmap: str='rainbow'): 
 
 
@@ -75,6 +79,7 @@ class ImageGenerator:
     self.h_end = h_end
     self.interval = interval
     self.freqs = freqs
+    self.image_matrix = *image_matrix,
     self.cmap = cmap
 
   def __str__(self) -> str:
@@ -89,6 +94,7 @@ class ImageGenerator:
               h_end = {self.h_end},\n \
               interval = {self.interval},\n \
               freqs = {self.freqs},\n \
+              image_matrix = {self.image_matrix},\n \
               cmap = {self.cmap})')
 
   def generate_images(self) -> None:
@@ -169,16 +175,17 @@ class ImageGenerator:
         \nTotal LONG: {total_long}\nTotal SHORT: {total_short}")
 
   @staticmethod
-  def __get_result(result) -> None:
+  def __get_result(result: list) -> None:
       """
       Auxiliary function for gathering setting decision results 
+      :param result: list
       :return: None
       """
 
       global results
       results.append(result)
 
-  def set_decision(self, i, day_start, day_end) -> tuple:
+  def set_decision(self, i: int, day_start: str, day_end: str) -> tuple:
       """
       Set decision for given interval (self.interval: default = 20) and 
       for given frequencies (self.freqs: default ['1h', '2h', '4h', '1d']),
@@ -187,9 +194,9 @@ class ImageGenerator:
       For each freqs group and determine the last 20 timestamps and append list GAFs
       Return tuple(i, decision_map) for each interval
       
-      :param i: auxiliary variable for tracking data order
-      :param day_start: first day of the defined interval 
-      :param day_end: last day od the defined interval 
+      :param i: int, auxiliary variable for tracking data order
+      :param day_start: str, first day of the defined interval 
+      :param day_end: str, last day od the defined interval 
       :return: tuple
       """
 
@@ -210,8 +217,8 @@ class ImageGenerator:
       """
       Call functions to generate GAF images i.e. call create_gaf to create list of DataFrames
       and then calling join_gafs will result saving images
-      :param one_day_data:
-      :param decision:
+      :param one_day_data: list
+      :param decision: str
       :return: None
       """
 
@@ -219,11 +226,11 @@ class ImageGenerator:
       self.join_gafs(images=gafs, image_name='{0}'.format(one_day_data[0].replace('-', '_')), destination=decision)
   
   @staticmethod
-  def create_gaf(time_series) -> list:
+  def create_gaf(time_series: list) -> list:
       """
       Create GAF (more explicit GADF Gramian Angular Difference Field) data for n prior defined frequencies
       Return a list of n DataFrames with the time series shape (square matrix)
-      :param time_series:
+      :param time_series: list
       :return: list
       """
 
@@ -232,18 +239,17 @@ class ImageGenerator:
       data['gadf'] = gadf.fit_transform(pd.DataFrame(time_series).T)[0]  
       return data
 
-  def join_gafs(self, images: list, image_name: str, destination: str, image_matrix: tuple=(2, 2)) -> None:  
+  def join_gafs(self, images: list, image_name: str, destination: str) -> None:  
       """
       Join GADFs' data and create Image Grid 
-      :param images:
-      :param image_name:
-      :param destination:
-      :param image_matrix:
+      :param images: list
+      :param image_name: str
+      :param destination: str
       :return: None
       """
 
-      fig = plt.figure(figsize=[img * 4 for img in image_matrix])
-      grid = ImageGrid(fig, 111, axes_pad=0, nrows_ncols=image_matrix, share_all=True)
+      fig = plt.figure(figsize=[img * self.image_matrix[0] * self.image_matrix[1] for img in self.image_matrix])
+      grid = ImageGrid(fig, 111, axes_pad=0, nrows_ncols=self.image_matrix, share_all=True)
       for image, ax in zip(images, grid):
           ax.set_xticks([])
           ax.set_yticks([])
