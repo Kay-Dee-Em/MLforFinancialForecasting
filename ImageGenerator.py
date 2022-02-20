@@ -6,11 +6,13 @@ import datetime as dt
 from multiprocessing import Pool
 from funcy import join_with
 from pyts.image import GramianAngularField
+import matplotlib
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import ImageGrid
 import Logger as log
 import logging
 
+matplotlib.use('Agg')
 
 logger = logging.getLogger(os.path.basename(__file__))
 custom_loggs = logging.StreamHandler()
