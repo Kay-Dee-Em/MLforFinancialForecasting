@@ -2,7 +2,7 @@ import os
 import pandas as pd
 from pandas import Timestamp as ts
 from pandas.tseries.holiday import USFederalHolidayCalendar as Calendar
-import datetime as dt
+from datetime import time
 from multiprocessing import Pool
 from funcy import join_with
 from pyts.image import GramianAngularField
@@ -26,7 +26,7 @@ class ImageGenerator:
   """
   Image Generator for processing, cleaning and creating GAFs (Gramian Angular Field) images for time series.
   
-  Paramameters
+  Parameters
   ------------
 
   data_name: str,
@@ -49,16 +49,23 @@ class ImageGenerator:
 
   interval: int, default: 20,
       Data interval (preprocessed subsequent unique days)
+  
+  generate_only_df_data: bool, default: False,
+      Generate only DataFrame data (do not create images)
 
   freqs: list, default: ['1h', '2h', '4h', '1d'],
       Frequencies for data grouping where array length equals number of images in one image grid
 
-  image_matrix: tuple, default: (2,2)
+  GAF_method: str, default: 'difference',
+      GAF method, possible options: ['difference', 'summation']
+
+  image_matrix: tuple, default: (2,2),
       Image matrix dimensions, nrows * ncols >= len(freqs)
 
-  cmap: str, default: 'rainbow'
-      Colour map for images
+  cmap: str, default: 'rainbow',
+      Color map for images
   """
+
 
   def __init__(self,
                data_name: str,
@@ -68,7 +75,9 @@ class ImageGenerator:
                h_start: str='9:00', 
                h_end: str='16:00', 
                interval: int=20,
+               generate_only_df_data: bool=False,
                freqs: list=['1h', '2h', '4h', '1d'],
+               GAF_method: str='difference',
                image_matrix: tuple=(2,2),
                cmap: str='rainbow'): 
 
@@ -80,14 +89,20 @@ class ImageGenerator:
     self.h_start = h_start
     self.h_end = h_end
     self.interval = interval
+    self.generate_only_df_data = generate_only_df_data
     self.freqs = freqs
     self.image_matrix = *image_matrix,
+    self.GAF_method = GAF_method
     self.cmap = cmap
 
+
   def __str__(self) -> str:
+
     return(f'This Image Generator is initialized for {self.data_name} data in {self.project_path} path')
 
+
   def __repr__(self) -> str:
+
     return(f'\nImageGenerator(data_name = {self.data_name},\n \
               project_path = {self.project_path},\n \
               imgs_dir_name = {self.imgs_dir_name},\n \
@@ -95,15 +110,24 @@ class ImageGenerator:
               h_start = {self.h_start},\n \
               h_end = {self.h_end},\n \
               interval = {self.interval},\n \
+              generate_only_df_data = {self.generate_only_df_data},\n \
+              freqs = {self.freqs},\n \
+              GAF_method = {self.GAF_method},\n \
               freqs = {self.freqs},\n \
               image_matrix = {self.image_matrix},\n \
               cmap = {self.cmap})')
 
+
   def generate_images(self) -> None:
 
-    self.create_directories()
-    self.preprocess_data()
-    self.create_images()  
+    if self.generate_only_df_data:  
+        self.preprocess_data()
+
+    else:
+        self.create_directories()
+        self.preprocess_data()
+        self.create_images()  
+
 
   def create_directories(self) -> None:
     """ 
@@ -118,9 +142,11 @@ class ImageGenerator:
     os.makedirs(SHORT)
     self.imgs_path = GAF
 
+
   def preprocess_data(self) -> None:
     """
-    Preprocess data i.e. delete unnecessary columns, group data by defined interval, delete non-trading times (days and hours)
+    Preprocess data i.e. delete unnecessary columns, group data by defined interval, delete non-trading times (days and hours),
+    determine intervals and changes in the closing prices
     :return: None
     """
 
@@ -140,26 +166,34 @@ class ImageGenerator:
     df = df[~df['DateTime'].isin(Calendar().holidays(start=data_start, end=data_end))].fillna(method='ffill')
     self.df = df
 
+    self.dates = self.df['DateTime'].dt.date.drop_duplicates()
+    list_dates = self.dates.apply(str).tolist()
+    self.days_start = list_dates[0:-self.interval]
+    self.days_end = list_dates[self.interval-1:-1]
+    self.days_next_after_end = list_dates[self.interval:]
+
+
+    df_closing_prices = self.df.loc[(self.df['DateTime'].dt.date.astype(str).isin(self.days_end)) & 
+                                    (self.df['DateTime'].dt.hour == time(*map(int, self.h_end.split(':'))).hour)].reset_index(drop=True)
+    df_closing_prices['Change'] = -df_closing_prices.Close.diff(periods=-1)
+    df_closing_prices['Decision'] = df_closing_prices['Change'].apply(lambda x: 1 if x > 0 else 0)
+    self.df_closing_prices = df_closing_prices
+
+
   def create_images(self) -> None:
     """
     Create images for preprocessed data, set decision long/short (buy/sell) and create images for defined frequencies 
     :return: None
     """
 
-    dates = self.df['DateTime'].dt.date.drop_duplicates()
-    list_dates = dates.apply(str).tolist()
-    days_end = list_dates[self.interval:]
-    days_start = list_dates[0:-self.interval]
-
-    global results
-    results = []
+    self.results = []
     logger.info('SETTING LONG/SHORT DECISION')
     pool = Pool(os.cpu_count())
-    for i in range(len(days_end)):
-        pool.apply_async(self.set_decision, args=(i, days_start[i], days_end[i]), callback=self.__get_result)
+    for i in range(len(self.days_end)):
+        pool.apply_async(self.set_decision, args=(i, self.days_start[i], self.days_end[i], self.days_next_after_end[i]), callback=self.__get_result)
     pool.close()
     pool.join()
-    number, dicts = zip(*results)
+    number, dicts = zip(*self.results)
     decision_map = join_with(list, list(dicts))
     logger.success("SETTING DECISION FINISHED SUCCESSFULLY")
 
@@ -169,25 +203,25 @@ class ImageGenerator:
         for image_data in data:
             pool.apply_async(self.generate_gaf, args=(image_data, decision)).get() 
     pool.close()
-    total_days = dates.shape[0]
+    total_days = self.dates.shape[0]
     total_short = len(decision_map['SHORT'])
     total_long = len(decision_map['LONG'])
     imgs_created = total_short + total_long
     logger.success(f"GENERATING IMAGES FINISHED SUCCESSFULLY\nTotal Days: {total_days}\nTotal Images Created: {imgs_created}\
         \nTotal LONG: {total_long}\nTotal SHORT: {total_short}")
 
-  @staticmethod
-  def __get_result(result: list) -> None:
+
+  def __get_result(self, result: list) -> None:
       """
       Auxiliary function for gathering setting decision results 
       :param result: list
       :return: None
       """
 
-      global results
-      results.append(result)
+      self.results.append(result)
 
-  def set_decision(self, i: int, day_start: str, day_end: str) -> tuple:
+
+  def set_decision(self, i: int, day_start: str, day_end: str, day_next_after_end: str) -> tuple:
       """
       Set decision for given interval (self.interval: default = 20) and 
       for given frequencies (self.freqs: default ['1h', '2h', '4h', '1d']),
@@ -198,22 +232,24 @@ class ImageGenerator:
       
       :param i: int, auxiliary variable for tracking data order
       :param day_start: str, first day of the defined interval 
-      :param day_end: str, last day od the defined interval 
+      :param day_end: str, last day of the defined interval 
+      :param day_next_after_end: str, next day after the last day of the defined interval 
       :return: tuple
       """
 
-      df_interval = self.df.loc[(self.df['DateTime'] >= day_start) & (self.df['DateTime'] < day_end)]
+      df_interval = self.df.loc[(self.df['DateTime'] >= day_start) & (self.df['DateTime'] < day_next_after_end)]
       
       gafs = []
       for freq in self.freqs:
               group_dt = df_interval.groupby(pd.Grouper(key='DateTime', freq=freq)).mean().reset_index().dropna()
               gafs.append(group_dt['Close'].tail(20))
       
-      future_value = self.df[self.df['DateTime'].dt.date.astype(str) == day_end]['Close'].iloc[-1]
+      future_value = self.df[self.df['DateTime'].dt.date.astype(str) == day_next_after_end]['Close'].iloc[-1]
       current_value = df_interval['Close'].iloc[-1]
       decision = 'LONG' if future_value > current_value else 'SHORT'
-      decision_map = {decision: ([df_interval['DateTime'].max().date().isoformat(), gafs])} 
+      decision_map = {decision: (day_end, gafs)} 
       return(i, decision_map)
+
 
   def generate_gaf(self, one_day_data: list, decision: str) -> None:
       """
@@ -224,26 +260,27 @@ class ImageGenerator:
       :return: None
       """
 
-      gafs = [self.create_gaf(x)['gadf'] for x in one_day_data[1]]
+      gafs = [self.create_gaf(x)['gaf'] for x in one_day_data[1]]
       self.join_gafs(images=gafs, image_name='{0}'.format(one_day_data[0].replace('-', '_')), destination=decision)
   
-  @staticmethod
-  def create_gaf(time_series: list) -> list:
+
+  def create_gaf(self, time_series: list) -> list:
       """
-      Create GAF (more explicit GADF Gramian Angular Difference Field) data for n prior defined frequencies
+      Create GAF (more explicit GADF or GASF (Gramian Angular Difference/Summation Field)) data for n prior defined frequencies
       Return a list of n DataFrames with the time series shape (square matrix)
       :param time_series: list
       :return: list
       """
 
       data = dict()
-      gadf = GramianAngularField(method='difference', image_size=time_series.shape[0])
-      data['gadf'] = gadf.fit_transform(pd.DataFrame(time_series).T)[0]  
+      gaf = GramianAngularField(method=self.GAF_method, image_size=time_series.shape[0])
+      data['gaf'] = gaf.fit_transform(pd.DataFrame(time_series).T)[0]  
       return data
+
 
   def join_gafs(self, images: list, image_name: str, destination: str) -> None:  
       """
-      Join GADFs' data and create Image Grid 
+      Join GAFs' data and create Image Grid 
       :param images: list
       :param image_name: str
       :param destination: str
