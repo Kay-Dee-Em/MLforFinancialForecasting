@@ -185,15 +185,16 @@ class ImageGenerator:
     Create images for preprocessed data, set decision long/short (buy/sell) and create images for defined frequencies 
     :return: None
     """
-
-    self.results = []
+    
+    global results
+    results = []
     logger.info('SETTING LONG/SHORT DECISION')
     pool = Pool(os.cpu_count())
     for i in range(len(self.days_end)):
         pool.apply_async(self.set_decision, args=(i, self.days_start[i], self.days_end[i], self.days_next_after_end[i]), callback=self.__get_result)
     pool.close()
     pool.join()
-    number, dicts = zip(*self.results)
+    number, dicts = zip(*results)
     decision_map = join_with(list, list(dicts))
     logger.success("SETTING DECISION FINISHED SUCCESSFULLY")
 
@@ -211,14 +212,15 @@ class ImageGenerator:
         \nTotal LONG: {total_long}\nTotal SHORT: {total_short}")
 
 
-  def __get_result(self, result: list) -> None:
+  @staticmethod
+  def __get_result(result: list) -> None:
       """
       Auxiliary function for gathering setting decision results 
       :param result: list
       :return: None
       """
-
-      self.results.append(result)
+      global results
+      results.append(result)
 
 
   def set_decision(self, i: int, day_start: str, day_end: str, day_next_after_end: str) -> tuple:
@@ -295,6 +297,6 @@ class ImageGenerator:
           ax.imshow(image, cmap=self.cmap, origin='lower')
 
       repo = os.path.join(self.imgs_path, destination)
-      fig.savefig(os.path.join(repo, image_name))
+      fig.savefig(os.path.join(repo, image_name), bbox_inches='tight')
       plt.close(fig)
 
