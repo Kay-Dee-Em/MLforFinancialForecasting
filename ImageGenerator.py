@@ -292,11 +292,12 @@ class ImageGenerator:
       fig = plt.figure(figsize=[img * self.image_matrix[0] * self.image_matrix[1] for img in self.image_matrix])
       grid = ImageGrid(fig, 111, axes_pad=0, nrows_ncols=self.image_matrix, share_all=True)
       for image, ax in zip(images, grid):
-          ax.set_xticks([])
-          ax.set_yticks([])
-          ax.imshow(image, cmap=self.cmap, origin='lower')
+          ax.axis("off")
+          ax.imshow(image, cmap=self.cmap, origin='lower', interpolation="nearest")
 
       repo = os.path.join(self.imgs_path, destination)
-      fig.savefig(os.path.join(repo, image_name), bbox_inches='tight')
+      fig.set_size_inches(0.52, 0.52)
+      
+      fig.savefig(os.path.join(repo, image_name), bbox_inches='tight', pad_inches=0)
       plt.close(fig)
 
