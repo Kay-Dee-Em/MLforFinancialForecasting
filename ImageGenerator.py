@@ -41,7 +41,7 @@ class ImageGenerator:
   base_freq: str, default: '1h,
       Base frequency for data grouping 
 
-  h_start: str, default: '9:00',
+  h_start: str, default: '9:30',
       Start trading hour
 
   h_end: str, default: '16:00',
@@ -72,7 +72,7 @@ class ImageGenerator:
                project_path: str=os.getcwd(),
                imgs_dir_name: str='GAF', 
                base_freq: str='1h', 
-               h_start: str='9:00', 
+               h_start: str='9:30', 
                h_end: str='16:00', 
                interval: int=20,
                generate_only_df_data: bool=False,
@@ -154,21 +154,21 @@ class ImageGenerator:
 
     col_names = ['Date', 'Time', 'Open', 'High', 'Low', 'Close', 'Volume']
     df = pd.read_csv(os.path.join(self.project_path, self.data_name), names=col_names, header=None)
-    df = df[['Date', 'Time', 'Close']]
     df['DateTime'] = pd.to_datetime(df['Date'] + ' ' + df['Time'], infer_datetime_format=True)
-    df = df.groupby(pd.Grouper(key='DateTime', freq=self.base_freq)).mean().reset_index()     
+    df = df[['DateTime', 'Close']]
     df['Close'].replace(to_replace=0, method='ffill', inplace=True)
-
     df = df[df['DateTime'].dt.weekday < 5].set_index('DateTime').between_time(self.h_start,self.h_end).reset_index()
+    df = df.groupby(pd.Grouper(key='DateTime', freq=self.base_freq)).mean().reset_index()
+    df = df.loc[df['Close'].notnull()]     
     
     data_start = ts(df['DateTime'].min().year,1,31)
     data_end = ts(df['DateTime'].max().year+1,1,1)
-    df = df[~df['DateTime'].isin(Calendar().holidays(start=data_start, end=data_end))].fillna(method='ffill')
+    df = df[~df['DateTime'].isin(Calendar().holidays(start=data_start, end=data_end))].fillna(method='ffill').reset_index(drop=True)
     self.df = df
 
     self.dates = self.df['DateTime'].dt.date.drop_duplicates()
     list_dates = self.dates.apply(str).tolist()
-    self.days_start = list_dates[0:-self.interval]
+    self.days_start = list_dates[:-self.interval]
     self.days_end = list_dates[self.interval-1:-1]
     self.days_next_after_end = list_dates[self.interval:]
 
@@ -297,7 +297,8 @@ class ImageGenerator:
 
       repo = os.path.join(self.imgs_path, destination)
       fig.set_size_inches(0.52, 0.52)
-      
+
       fig.savefig(os.path.join(repo, image_name), bbox_inches='tight', pad_inches=0)
       plt.close(fig)
-
+      
+      
