@@ -64,6 +64,10 @@ class ImageGenerator:
 
   cmap: str, default: 'rainbow',
       Color map for images
+
+  imgs_size_inches: tuple, default: (0.52,0.52),
+      Image size in inches, default -> 40x40 px
+
   """
 
 
@@ -79,7 +83,8 @@ class ImageGenerator:
                freqs: list=['1h', '2h', '4h', '1d'],
                GAF_method: str='difference',
                image_matrix: tuple=(2,2),
-               cmap: str='rainbow'): 
+               cmap: str='rainbow',
+               imgs_size_inches: tuple=(0.52,0.52)): 
 
 
     self.data_name = data_name
@@ -94,6 +99,7 @@ class ImageGenerator:
     self.image_matrix = *image_matrix,
     self.GAF_method = GAF_method
     self.cmap = cmap
+    self.imgs_size_inches = imgs_size_inches
 
 
   def __str__(self) -> str:
@@ -115,7 +121,8 @@ class ImageGenerator:
               GAF_method = {self.GAF_method},\n \
               freqs = {self.freqs},\n \
               image_matrix = {self.image_matrix},\n \
-              cmap = {self.cmap})')
+              cmap = {self.cmap},\n \
+              imgs_size_inches = {self.imgs_size_inches})')
 
 
   def generate_images(self) -> None:
@@ -159,7 +166,7 @@ class ImageGenerator:
     df['Close'].replace(to_replace=0, method='ffill', inplace=True)
     df = df[df['DateTime'].dt.weekday < 5].set_index('DateTime').between_time(self.h_start,self.h_end).reset_index()
     df = df.groupby(pd.Grouper(key='DateTime', freq=self.base_freq)).mean().reset_index()
-    df = df.loc[df['Close'].notnull()]     
+    df = df.loc[df['Close'].notnull()].reset_index(drop=True)     
     
     data_start = ts(df['DateTime'].min().year,1,31)
     data_end = ts(df['DateTime'].max().year+1,1,1)
@@ -172,10 +179,9 @@ class ImageGenerator:
     self.days_end = list_dates[self.interval-1:-1]
     self.days_next_after_end = list_dates[self.interval:]
 
-
-    df_closing_prices = self.df.loc[(self.df['DateTime'].dt.date.astype(str).isin(self.days_end)) & 
-                                    (self.df['DateTime'].dt.hour == time(*map(int, self.h_end.split(':'))).hour)].reset_index(drop=True)
-    df_closing_prices['Change'] = -df_closing_prices.Close.diff(periods=-1)
+    df_closing_prices = self.df.loc[self.df['DateTime'].dt.date.astype(str).isin(self.days_end)].reset_index(drop=True)
+    df_closing_prices = df_closing_prices.groupby(df_closing_prices['DateTime'].dt.date).apply(lambda x: x.iloc[-1]).reset_index(drop=True)
+    df_closing_prices['Change'] = -df_closing_prices['Close'].diff(periods=-1)
     df_closing_prices['Decision'] = df_closing_prices['Change'].apply(lambda x: 1 if x > 0 else 0)
     self.df_closing_prices = df_closing_prices
 
@@ -191,12 +197,14 @@ class ImageGenerator:
     logger.info('SETTING LONG/SHORT DECISION')
     pool = Pool(os.cpu_count())
     for i in range(len(self.days_end)):
-        pool.apply_async(self.set_decision, args=(i, self.days_start[i], self.days_end[i], self.days_next_after_end[i]), callback=self.__get_result)
+        pool.apply_async(self.calc_freqs_and_set_decision, args=(i, self.days_start[i], self.days_end[i], self.days_next_after_end[i]), callback=self.__get_result)
     pool.close()
     pool.join()
     number, dicts = zip(*results)
     decision_map = join_with(list, list(dicts))
     logger.success("SETTING DECISION FINISHED SUCCESSFULLY")
+
+    self.generate_last_vals_df(decision_map)
 
     logger.info('GENERATING IMAGES')
     pool = Pool(os.cpu_count())
@@ -223,7 +231,7 @@ class ImageGenerator:
       results.append(result)
 
 
-  def set_decision(self, i: int, day_start: str, day_end: str, day_next_after_end: str) -> tuple:
+  def calc_freqs_and_set_decision(self, i: int, day_start: str, day_end: str, day_next_after_end: str) -> tuple:
       """
       Set decision for given interval (self.interval: default = 20) and 
       for given frequencies (self.freqs: default ['1h', '2h', '4h', '1d']),
@@ -243,8 +251,10 @@ class ImageGenerator:
       
       gafs = []
       for freq in self.freqs:
-              group_dt = df_interval.groupby(pd.Grouper(key='DateTime', freq=freq)).mean().reset_index().dropna()
-              gafs.append(group_dt['Close'].tail(20))
+              offset_hour = str(time(*map(int, self.h_start.split(':'))).hour) + 'h'
+              group_dt = df_interval.groupby(pd.Grouper(key='DateTime', freq=freq, offset=offset_hour)).mean().reset_index()
+              group_dt = group_dt.loc[group_dt['Close'].notnull()].reset_index(drop=True)     
+              gafs.append(group_dt['Close'].tail(self.interval))
       
       future_value = self.df[self.df['DateTime'].dt.date.astype(str) == day_next_after_end]['Close'].iloc[-1]
       current_value = df_interval['Close'].iloc[-1]
@@ -252,6 +262,28 @@ class ImageGenerator:
       decision_map = {decision: (day_end, gafs)} 
       return(i, decision_map)
 
+  def generate_last_vals_df(self, decision_map: dict) -> None:
+        """
+        Generate last values DataFrame based on dictionary created in calc_freqs_and_set_decision function
+        :param decision_map: dict, dictionary generated in func calc_freqs_and_set_decision
+        :return: None
+        """
+
+        df_20_long = pd.DataFrame(decision_map['LONG'])
+        df_20_long['Decision'] = 'LONG'
+        df_20_short = pd.DataFrame(decision_map['SHORT'])
+        df_20_short['Decision'] = 'SHORT'
+        df_20_last_vals = pd.concat([df_20_long, df_20_short]).reset_index(drop=True)
+
+        df_20_last_vals['1H'] = df_20_last_vals[1].apply(lambda x: x[0].tolist())
+        df_20_last_vals['2H'] = df_20_last_vals[1].apply(lambda x: x[1].tolist())
+        df_20_last_vals['4H'] = df_20_last_vals[1].apply(lambda x: x[2].tolist())
+        df_20_last_vals['1D'] = df_20_last_vals[1].apply(lambda x: x[3].tolist())
+        df_20_last_vals.drop([1], axis=1, inplace=True)
+        df_20_last_vals.rename({0: 'Date'}, axis=1, inplace=True)
+        df_20_last_vals = df_20_last_vals.sort_values('Date').reset_index(drop=True)
+
+        self.df_20_last_vals = df_20_last_vals
 
   def generate_gaf(self, one_day_data: list, decision: str) -> None:
       """
@@ -263,7 +295,7 @@ class ImageGenerator:
       """
 
       gafs = [self.create_gaf(x)['gaf'] for x in one_day_data[1]]
-      self.join_gafs(images=gafs, image_name='{0}'.format(one_day_data[0].replace('-', '_')), destination=decision)
+      self.join_gafs_into_heatmap(images=gafs, image_name='{0}'.format(one_day_data[0].replace('-', '_')), destination=decision)
   
 
   def create_gaf(self, time_series: list) -> list:
@@ -280,9 +312,9 @@ class ImageGenerator:
       return data
 
 
-  def join_gafs(self, images: list, image_name: str, destination: str) -> None:  
+  def join_gafs_into_heatmap(self, images: list, image_name: str, destination: str) -> None:  
       """
-      Join GAFs' data and create Image Grid 
+      Join GAFs' data and create Image Grid heatmap
       :param images: list
       :param image_name: str
       :param destination: str
@@ -295,10 +327,10 @@ class ImageGenerator:
           ax.axis("off")
           ax.imshow(image, cmap=self.cmap, origin='lower', interpolation="nearest")
 
-      repo = os.path.join(self.imgs_path, destination)
-      fig.set_size_inches(0.52, 0.52)
+      fig.set_size_inches(self.imgs_size_inches)
 
-      fig.savefig(os.path.join(repo, image_name), bbox_inches='tight', pad_inches=0)
+      imgs_dir = os.path.join(self.imgs_path, destination)
+      fig.savefig(os.path.join(imgs_dir, image_name), bbox_inches='tight', pad_inches=0)
       plt.close(fig)
       
       
