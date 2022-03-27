@@ -269,21 +269,21 @@ class ImageGenerator:
         :return: None
         """
 
-        df_20_long = pd.DataFrame(decision_map['LONG'])
-        df_20_long['Decision'] = 'LONG'
-        df_20_short = pd.DataFrame(decision_map['SHORT'])
-        df_20_short['Decision'] = 'SHORT'
-        df_20_last_vals = pd.concat([df_20_long, df_20_short]).reset_index(drop=True)
+        df_last_long = pd.DataFrame(decision_map['LONG'])
+        df_last_long['Decision'] = 'LONG'
+        df_last_short = pd.DataFrame(decision_map['SHORT'])
+        df_last_short['Decision'] = 'SHORT'
+        df_last_vals = pd.concat([df_last_long, df_last_short]).reset_index(drop=True)
 
-        df_20_last_vals['1H'] = df_20_last_vals[1].apply(lambda x: x[0].tolist())
-        df_20_last_vals['2H'] = df_20_last_vals[1].apply(lambda x: x[1].tolist())
-        df_20_last_vals['4H'] = df_20_last_vals[1].apply(lambda x: x[2].tolist())
-        df_20_last_vals['1D'] = df_20_last_vals[1].apply(lambda x: x[3].tolist())
-        df_20_last_vals.drop([1], axis=1, inplace=True)
-        df_20_last_vals.rename({0: 'Date'}, axis=1, inplace=True)
-        df_20_last_vals = df_20_last_vals.sort_values('Date').reset_index(drop=True)
+        df_last_vals['1H'] = df_last_vals[1].apply(lambda x: x[0].tolist())
+        df_last_vals['2H'] = df_last_vals[1].apply(lambda x: x[1].tolist())
+        df_last_vals['4H'] = df_last_vals[1].apply(lambda x: x[2].tolist())
+        df_last_vals['1D'] = df_last_vals[1].apply(lambda x: x[3].tolist())
+        df_last_vals.drop([1], axis=1, inplace=True)
+        df_last_vals.rename({0: 'Date'}, axis=1, inplace=True)
+        df_last_vals = df_last_vals.sort_values('Date').reset_index(drop=True)
 
-        self.df_20_last_vals = df_20_last_vals
+        self.df_last_vals = df_last_vals
 
   def generate_gaf(self, one_day_data: list, decision: str) -> None:
       """
@@ -332,5 +332,4 @@ class ImageGenerator:
       imgs_dir = os.path.join(self.imgs_path, destination)
       fig.savefig(os.path.join(imgs_dir, image_name), bbox_inches='tight', pad_inches=0)
       plt.close(fig)
-      
       
