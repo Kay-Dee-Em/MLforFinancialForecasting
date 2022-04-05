@@ -22,6 +22,7 @@ setattr(logger, 'success', lambda message, *args: logger._log(logging.SUCCESS, m
 setattr(logger, 'info', lambda message, *args: logger._log(logging.INFO, message, args))
 
 
+
 class ImageGenerator:
   """
   Image Generator for processing, cleaning and creating GAFs (Gramian Angular Field) images for time series.
@@ -262,6 +263,7 @@ class ImageGenerator:
       decision_map = {decision: (day_end, gafs)} 
       return(i, decision_map)
 
+
   def generate_last_vals_df(self, decision_map: dict) -> None:
         """
         Generate last values DataFrame based on dictionary created in calc_freqs_and_set_decision function
@@ -284,6 +286,7 @@ class ImageGenerator:
         df_last_vals = df_last_vals.sort_values('Date').reset_index(drop=True)
 
         self.df_last_vals = df_last_vals
+
 
   def generate_gaf(self, one_day_data: list, decision: str) -> None:
       """
