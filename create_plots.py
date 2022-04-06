@@ -89,17 +89,18 @@ def strategy_visualization(df: pd.DataFrame()):
 
 def cross_validation_visualization(df: pd.DataFrame()):
 
-    plt.figure(figsize=(10,7))
     plt.rc('axes', axisbelow=True)
+    fig, axs = plt.subplots(2, 1, figsize=(12,10), gridspec_kw={'height_ratios': [3, 1]})
     x = df['DateTime']
     y = df['Close']
-    plt.plot(x, y, color='#BFDCF7')
-    plt.fill_between(x, y, color='#BFDCF7')
-    plt.margins(0)
+    axs[0].plot(x, y, color='#BFDCF7')
+    axs[0].fill_between(x, y, color='#BFDCF7')
+    axs[0].margins(0)
+    axs[0].grid(True)
 
     train_start = pd.to_datetime(dt.date.fromisoformat('2001-04-01'))
     NN_number = 9
-    start_value = 15
+    start_value = 5
     for i in range(NN_number):
 
         train_end = pd.to_datetime(train_start + relativedelta(months=13*12))
@@ -118,16 +119,27 @@ def cross_validation_visualization(df: pd.DataFrame()):
         x_test = df_test_chunk['DateTime']
         y_test = [start_value] * len(x_test)
 
-        plt.plot(x_train, y_train, color='red', linewidth=2.5, linestyle='-')
-        plt.plot(x_validation, y_validation, color='orange', linewidth=2.5, linestyle='-')
-        plt.plot(x_test, y_test, color='green', linewidth=2.5)
+        if i == 8:
+            axs[1].plot(x_train, y_train, color='red', linewidth=4, label='treningowy')
+            axs[1].plot(x_validation, y_validation, color='orange', linewidth=4, label='walidacyjny')
+            axs[1].plot(x_test, y_test, color='green', linewidth=4, label='testowy')
+        
+        else:
+            axs[1].plot(x_train, y_train, color='red', linewidth=4, )
+            axs[1].plot(x_validation, y_validation, color='orange', linewidth=4)
+            axs[1].plot(x_test, y_test, color='green', linewidth=4)
 
         train_start += relativedelta(months=3)
-        start_value += 30
+        start_value += 5
 
 
-    plt.grid(True)
-    plt.savefig(os.path.join(plots_dir_name, 'cross_validation.png'), bbox_inches='tight', pad_inches=0, transparent=True)
+    axs[1].margins(0)
+    axs[1].set_ylim([0, start_value])
+    axs[1].axis('off')
+    handles, labels = axs[1].get_legend_handles_labels()
+    fig.legend(handles, labels, loc='upper right', fontsize=16, bbox_to_anchor=(0.97, 0.98)) 
+    fig.tight_layout()
+    fig.savefig(os.path.join(plots_dir_name, 'cross_validation.png'), bbox_inches='tight', pad_inches=0, transparent=True)
     plt.close()
 
 
