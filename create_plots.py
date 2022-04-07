@@ -95,6 +95,8 @@ def cross_validation_visualization(df: pd.DataFrame()):
     y = df['Close']
     axs[0].plot(x, y, color='#BFDCF7')
     axs[0].fill_between(x, y, color='#BFDCF7')
+    axs[0].tick_params(axis='x', labelsize=12)
+    axs[0].tick_params(axis='y', labelsize=12)
     axs[0].margins(0)
     axs[0].grid(True)
 
@@ -120,9 +122,9 @@ def cross_validation_visualization(df: pd.DataFrame()):
         y_test = [start_value] * len(x_test)
 
         if i == 8:
-            axs[1].plot(x_train, y_train, color='red', linewidth=4, label='treningowy')
-            axs[1].plot(x_validation, y_validation, color='orange', linewidth=4, label='walidacyjny')
-            axs[1].plot(x_test, y_test, color='green', linewidth=4, label='testowy')
+            axs[1].plot(x_train, y_train, color='red', linewidth=4, label='zbiór treningowy')
+            axs[1].plot(x_validation, y_validation, color='orange', linewidth=4, label='zbiór walidacyjny')
+            axs[1].plot(x_test, y_test, color='green', linewidth=4, label='zbiór testowy')
         
         else:
             axs[1].plot(x_train, y_train, color='red', linewidth=4, )
@@ -149,7 +151,9 @@ if __name__ == '__main__':
     ig.generate_images()
 
     plots_dir_name = 'PLOTS'
-    os.mkdir(plots_dir_name)
+    
+    if not os.path.isdir(plots_dir_name):
+        os.mkdir(plots_dir_name)
 
     strategy_visualization(ig.df)
     cross_validation_visualization(ig.df)
