@@ -218,8 +218,8 @@ class NNModel:
         model.add(SpatialAttention(40))
         
         model.add(Lambda(ReshapeLayer))
-        model.add(LSTM(64, dropout=0.4, return_sequences=True))
-        model.add(SeqSelfAttention(attention_width=32))
+        model.add(LSTM(32, dropout=0.4, return_sequences=True))
+        model.add(SeqSelfAttention(attention_width=16))
         model.add(Flatten())
         model.add(Dense(1024, activation=LeakyReLU(alpha=0.1)))
         model.add(Dense(1, activation="sigmoid"))

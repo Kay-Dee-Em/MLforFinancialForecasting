@@ -17,35 +17,35 @@ class ChannelAttention(tf.keras.layers.Layer):
         self.ratio = ratio
 
 
-    def build(self, input_shape):
+        def build(self, input_shape):
 
-        self.shared_layer_one = tf.keras.layers.Dense(self.filters//self.ratio,
-                                                    activation='relu', kernel_initializer='he_normal', 
-                                                    use_bias=True, 
-                                                    bias_initializer='zeros')
+            self.shared_layer_one = tf.keras.layers.Dense(self.filters//self.ratio,
+                                                        activation='relu', kernel_initializer='he_normal', 
+                                                        use_bias=True, 
+                                                        bias_initializer='zeros')
 
-        self.shared_layer_two = tf.keras.layers.Dense(self.filters,
-                                                    kernel_initializer='he_normal',
-                                                    use_bias=True,
-                                                    bias_initializer='zeros')
+            self.shared_layer_two = tf.keras.layers.Dense(self.filters,
+                                                        kernel_initializer='he_normal',
+                                                        use_bias=True,
+                                                        bias_initializer='zeros')
 
 
-    def call(self, inputs):
+        def call(self, inputs):
 
-        avg_pool = tf.keras.layers.GlobalAveragePooling2D()(inputs)
-        avg_pool = self.shared_layer_one(avg_pool)
-        avg_pool = self.shared_layer_two(avg_pool)
+            avg_pool = tf.keras.layers.GlobalAveragePooling2D()(inputs)
+            avg_pool = self.shared_layer_one(avg_pool)
+            avg_pool = self.shared_layer_two(avg_pool)
 
-        max_pool = tf.keras.layers.GlobalMaxPooling2D()(inputs)
-        max_pool = tf.keras.layers.Reshape((1, 1, self.filters))(max_pool)
+            max_pool = tf.keras.layers.GlobalMaxPooling2D()(inputs)
+            max_pool = tf.keras.layers.Reshape((1, 1, self.filters))(max_pool)
 
-        max_pool = self.shared_layer_one(max_pool) #here
-        max_pool = self.shared_layer_two(max_pool) #here
+            max_pool = shared_layer_one(max_pool) #here
+            max_pool = shared_layer_two(max_pool) #here
 
-        attention = tf.keras.layers.Add()([avg_pool,max_pool])
-        attention = tf.keras.layers.Activation('sigmoid')(attention)
-        
-        return tf.keras.layers.Multiply()([inputs, attention])
+            attention = tf.keras.layers.Add()([avg_pool,max_pool])
+            attention = tf.keras.layers.Activation('sigmoid')(attention)
+            
+            return tf.keras.layers.Multiply()([inputs, attention])
 
 
     def get_config(self):
@@ -71,26 +71,26 @@ class SpatialAttention(tf.keras.layers.Layer):
         self.kernel_size = kernel_size
     
 
-    def build(self, input_shape):
+        def build(self, input_shape):
 
-        self.conv2d = tf.keras.layers.Conv2D(filters = 1,
-                                            kernel_size=self.kernel_size,
-                                            strides=1,
-                                            padding='same',
-                                            activation='sigmoid',
-                                            kernel_initializer='he_normal',
-                                            use_bias=False)
+            self.conv2d = tf.keras.layers.Conv2D(filters = 1,
+                                                kernel_size=self.kernel_size,
+                                                strides=1,
+                                                padding='same',
+                                                activation='sigmoid',
+                                                kernel_initializer='he_normal',
+                                                use_bias=False)
 
 
-    def call(self, inputs):
-        
-        avg_pool = tf.keras.layers.Lambda(lambda x: tf.keras.backend.mean(x, axis=3, keepdims=True))(inputs)
-        max_pool = tf.keras.layers.Lambda(lambda x: tf.keras.backend.max(x, axis=3, keepdims=True))(inputs)
+        def call(self, inputs):
+            
+            avg_pool = tf.keras.layers.Lambda(lambda x: tf.keras.backend.mean(x, axis=3, keepdims=True))(inputs)
+            max_pool = tf.keras.layers.Lambda(lambda x: tf.keras.backend.max(x, axis=3, keepdims=True))(inputs)
 
-        attention = tf.keras.layers.Concatenate(axis=3)([avg_pool, max_pool])
-        attention = self.conv2d(attention)
+            attention = tf.keras.layers.Concatenate(axis=3)([avg_pool, max_pool])
+            attention = self.conv2d(attention)
 
-        return tf.keras.layers.multiply([inputs, attention]) 
+            return tf.keras.layers.multiply([inputs, attention]) 
 
 
     def get_config(self):
