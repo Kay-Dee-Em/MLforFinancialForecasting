@@ -16,7 +16,7 @@ Auxiliary script to:
 
 """
 
-def strategy_visualization(df: pd.DataFrame()):
+def strategy_visualization(df: pd.DataFrame):
 
     df_long = df[(df['DateTime'].dt.date.astype(str) >= '2021-12-03') & (df['DateTime'].dt.date.astype(str) < '2022-01-01')]
     df_long_next_day = df[(df['DateTime'].dt.date.astype(str) >= '2021-12-31') & (df['DateTime'].dt.date.astype(str) < '2022-01-04')][-9:]
@@ -87,16 +87,16 @@ def strategy_visualization(df: pd.DataFrame()):
         plt.close()
 
 
-def cross_validation_visualization(df: pd.DataFrame()):
+def cross_validation_visualization(df: pd.DataFrame):
 
     plt.rc('axes', axisbelow=True)
-    fig, axs = plt.subplots(2, 1, figsize=(12,10), gridspec_kw={'height_ratios': [3, 1]})
+    fig, axs = plt.subplots(2, 1, figsize=(9,6), gridspec_kw={'height_ratios': [3, 1]})
     x = df['DateTime']
     y = df['Close']
     axs[0].plot(x, y, color='#BFDCF7')
     axs[0].fill_between(x, y, color='#BFDCF7')
-    axs[0].tick_params(axis='x', labelsize=12)
-    axs[0].tick_params(axis='y', labelsize=12)
+    axs[0].tick_params(axis='x', labelsize=14)
+    axs[0].tick_params(axis='y', labelsize=14)
     axs[0].margins(0)
     axs[0].grid(True)
 
@@ -139,7 +139,7 @@ def cross_validation_visualization(df: pd.DataFrame()):
     axs[1].set_ylim([0, start_value])
     axs[1].axis('off')
     handles, labels = axs[1].get_legend_handles_labels()
-    fig.legend(handles, labels, loc='upper right', fontsize=16, bbox_to_anchor=(0.97, 0.98)) 
+    fig.legend(handles, labels, loc='upper right', fontsize=14, bbox_to_anchor=(0.96, 0.97)) 
     fig.tight_layout()
     fig.savefig(os.path.join(plots_dir_name, 'cross_validation.png'), bbox_inches='tight', pad_inches=0, transparent=True)
     plt.close()
