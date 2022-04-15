@@ -8,8 +8,8 @@ import tensorflow as tf
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import Conv2D, LSTM, Dense, Flatten, LeakyReLU, BatchNormalization, Dropout, Lambda
-from tensorflow.keras.initializers import GlorotNormal, GlorotUniform, HeNormal, HeUniform, LecunNormal, LecunUniform
-from tensorflow.keras.initializers import Ones, Orthogonal, RandomNormal, RandomUniform, TruncatedNormal, VarianceScaling
+from tensorflow.keras.initializers import GlorotNormal, GlorotUniform, HeNormal, HeUniform, LecunUniform
+from tensorflow.keras.initializers import Orthogonal, RandomNormal, RandomUniform, TruncatedNormal, VarianceScaling
 from tensorflow.keras.optimizers import SGD
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 
@@ -125,12 +125,11 @@ class NNModel:
 
         if not self.pass_model:
 
-            GN, GU, HN, HU = GlorotNormal(seed=42), GlorotUniform(seed=42), HeNormal(seed=42), HeUniform(seed=42)
-            LN, LU, ON, OR = LecunNormal(seed=42), LecunUniform(seed=42), Ones, Orthogonal(seed=42)
-            RN, RU, TN, VS = RandomNormal(seed=42), RandomUniform(seed=42), TruncatedNormal(seed=42), VarianceScaling(seed=42)
+            GN, GU, HN, HU, LU = GlorotNormal(seed=42), GlorotUniform(seed=42), HeNormal(seed=42), HeUniform(seed=42), LecunUniform(seed=42)
+            OR, RN, RU, TN, VS =  Orthogonal(seed=42), RandomNormal(seed=42), RandomUniform(seed=42), TruncatedNormal(seed=42), VarianceScaling(seed=42)
 
-            self.initializers = [GN, GU, HN, HU, LN, LU, ON, OR, RN, RU, TN, VS]
-            self.initializers_labels = ['GN', 'GU', 'HN', 'HU', 'LN', 'LU', 'ON', 'OR', 'RN', 'RU', 'TN', 'VS']
+            self.initializers = [GN, GU, HN, HU, LU, OR, RN, RU, TN, VS]
+            self.initializers_labels = ['GN', 'GU', 'HN', 'HU', 'LU', 'OR', 'RN', 'RU', 'TN', 'VS']
 
             models = []
             for NN_no in range(self.NN_number):
@@ -214,33 +213,33 @@ class NNModel:
         model=Sequential()
         model.add(Conv2D(32, kernel_size=(3,3), kernel_initializer=initializer,  input_shape=(40, 40, 3), activation=LeakyReLU(alpha=0.1), padding='same'))
         model.add(BatchNormalization())
-        model.add(Conv2D(32, kernel_size=(3,3), activation=LeakyReLU(alpha=0.1), padding='same'))
+        model.add(Conv2D(32, kernel_size=(3,3), kernel_initializer=initializer,  activation=LeakyReLU(alpha=0.1), padding='same'))
         model.add(BatchNormalization())
         model.add(ChannelAttention(32, 8))
         model.add(SpatialAttention(40))
         model.add(Dropout(0.4))
 
-        model.add(Conv2D(64, kernel_size=(3,3), activation=LeakyReLU(alpha=0.1), padding='same'))
+        model.add(Conv2D(64, kernel_size=(3,3), kernel_initializer=initializer,  activation=LeakyReLU(alpha=0.1), padding='same'))
         model.add(BatchNormalization())
-        model.add(Conv2D(64, kernel_size=(3,3), activation=LeakyReLU(alpha=0.1), padding='same'))
+        model.add(Conv2D(64, kernel_size=(3,3), kernel_initializer=initializer,  activation=LeakyReLU(alpha=0.1), padding='same'))
         model.add(BatchNormalization())
         model.add(ChannelAttention(64, 8))
         model.add(SpatialAttention(40))
         model.add(Dropout(0.4))
 
-        model.add(Conv2D(128, kernel_size=(3,3), activation=LeakyReLU(alpha=0.1), padding='same'))
+        model.add(Conv2D(128, kernel_size=(3,3), kernel_initializer=initializer,  activation=LeakyReLU(alpha=0.1), padding='same'))
         model.add(BatchNormalization())
-        model.add(Conv2D(128, kernel_size=(3,3), activation=LeakyReLU(alpha=0.1), padding='same'))
+        model.add(Conv2D(128, kernel_size=(3,3), kernel_initializer=initializer,  activation=LeakyReLU(alpha=0.1), padding='same'))
         model.add(BatchNormalization())
         model.add(ChannelAttention(128, 8))
         model.add(SpatialAttention(40))
         
         model.add(Lambda(ReshapeLayer))
-        model.add(LSTM(32, dropout=0.4, return_sequences=True))
+        model.add(LSTM(32, kernel_initializer=initializer,  dropout=0.4, return_sequences=True))
         model.add(SeqSelfAttention(attention_width=16))
         model.add(Flatten())
-        model.add(Dense(1024, activation=LeakyReLU(alpha=0.1)))
-        model.add(Dense(1, activation="sigmoid"))
+        model.add(Dense(1024, kernel_initializer=initializer,  activation=LeakyReLU(alpha=0.1)))
+        model.add(Dense(1, kernel_initializer=initializer,  activation="sigmoid"))
         
         model.compile(optimizer=SGD(learning_rate=0.001, decay=1e-6, momentum=0.9, nesterov=True) , loss=self.loss, metrics=self.metric)
         
@@ -292,7 +291,7 @@ class NNModel:
             validate_filenames=True)
 
         start_NN_date = '_' + str(df_train['DateTime'][0])[:10]
-        print('NN train start:', start_NN_date)
+        print('NN train start:', start_NN_date[1:])
         #print(self.models_list[train_model_no].summary())
         model_name = os.path.join(self.models_dir_name, 'Model_' + str(NN_no) + '_' + initializer + start_NN_date + '.h5')
         model_ckpoint = ModelCheckpoint(model_name, monitor='val_acc', mode='max', verbose = self.verbose, save_best_only=True, save_weights_only=False)
@@ -355,6 +354,10 @@ class NNModel:
                 df_test.to_csv(os.path.join(self.predictions_dir_name, col_test_name + '.csv'), index=False)
         else:
             df_test.to_csv(os.path.join(self.predictions_dir_name, col_test_name + '.csv'), index=False)
+
+
+        if self.pass_model:
+            os.remove(model_name) 
 
 
     
