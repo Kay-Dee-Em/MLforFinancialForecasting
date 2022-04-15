@@ -292,8 +292,8 @@ class NNModel:
             validate_filenames=True)
 
         start_NN_date = '_' + str(df_train['DateTime'][0])[:10]
-        print('Start_date', start_NN_date)
-        print(self.models_list[train_model_no].summary())
+        print('NN train start:', start_NN_date)
+        #print(self.models_list[train_model_no].summary())
         model_name = os.path.join(self.models_dir_name, 'Model_' + str(NN_no) + '_' + initializer + start_NN_date + '.h5')
         model_ckpoint = ModelCheckpoint(model_name, monitor='val_acc', mode='max', verbose = self.verbose, save_best_only=True, save_weights_only=False)
         early_stoping = EarlyStopping(monitor='val_acc', min_delta=0.001, patience=self.patience, verbose=self.verbose)
@@ -331,10 +331,14 @@ class NNModel:
         print(f'Validation (Best Model) Accuracy: {scores_validation[1]*100}%')
 
         model_prediction_validation = best_model.predict(validation_data)
-        col_val_name = 'Prediction_validation_' + str(NN_no) + str(initializer) + start_NN_date
+        col_val_name = 'Prediction_validation_' + str(NN_no) + initializer + start_NN_date
         df_validation[col_val_name] = model_prediction_validation
 
-        df_validation.to_csv(os.path.join(self.predictions_dir_name, col_val_name + '.csv'), index=False)
+        if not self.pass_model:
+            if initializer == 'VS':
+                df_validation.to_csv(os.path.join(self.predictions_dir_name, col_val_name + '.csv'), index=False)
+        else:
+            df_validation.to_csv(os.path.join(self.predictions_dir_name, col_val_name + '.csv'), index=False)
 
 
         ####################   TEST   ####################
@@ -343,10 +347,14 @@ class NNModel:
         print(f'Test Accuracy: {scores_test[1]*100}%')
 
         model_prediction_test = best_model.predict(test_data)
-        col_test_name = 'Prediction_test_' + str(NN_no) + str(initializer) + start_NN_date
+        col_test_name = 'Prediction_test_' + str(NN_no) + initializer + start_NN_date
         df_test[col_test_name] = model_prediction_test  
         
-        df_test.to_csv(os.path.join(self.predictions_dir_name, col_test_name + '.csv'), index=False)
+        if not self.pass_model:
+            if initializer == 'VS':
+                df_test.to_csv(os.path.join(self.predictions_dir_name, col_test_name + '.csv'), index=False)
+        else:
+            df_test.to_csv(os.path.join(self.predictions_dir_name, col_test_name + '.csv'), index=False)
 
 
     
