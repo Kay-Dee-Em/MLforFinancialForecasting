@@ -46,6 +46,7 @@ class NNModel:
                  pass_model: bool=False,
                  models_list: list=None,
                  NN_number: int=9,
+                 NN_initializers_labels_custom: list=['GN'],
                  epochs: int=100,
                  loss: str='binary_crossentropy',
                  metric: str='acc',
@@ -66,6 +67,7 @@ class NNModel:
         self.pass_model = pass_model
         self.models_list = models_list
         self.NN_number = NN_number
+        self.NN_initializers_labels_custom = NN_initializers_labels_custom
         self.epochs = epochs
         self.loss = loss
         self.metric = metric
@@ -93,6 +95,7 @@ class NNModel:
                 pass_model = {self.pass_model},\n \
                 models_list = {self.models_list},\n \
                 NN_number = {self.NN_number},\n \
+                NN_initializers_labels_custom = {self.NN_initializers_labels_custom},\n \
                 epochs = {self.epochs},\n \
                 loss = {self.loss},\n \
                 metric = {self.metric},\n \
@@ -112,16 +115,17 @@ class NNModel:
         self.train_img_data = ImageDataGenerator(rescale=1/255)  
         self.validation_img_data = ImageDataGenerator(rescale=1/255) 
         self.test_img_data = ImageDataGenerator(rescale=1/255)
-        self.NNs_data = self.split_data_into_N_CNN()
-
-        GN, GU, HN, HU = GlorotNormal(seed=42), GlorotUniform(seed=42), HeNormal(seed=42), HeUniform(seed=42)
-        LN, LU, ON, OR = LecunNormal(seed=42), LecunUniform(seed=42), Ones, Orthogonal(seed=42)
-        RN, RU, TN, VS = RandomNormal(seed=42), RandomUniform(seed=42), TruncatedNormal(seed=42), VarianceScaling(seed=42)
-
-        self.initializers = [GN, GU, HN, HU, LN, LU, ON, OR, RN, RU, TN, VS]
-        self.initializers_labels = ['GN', 'GU', 'HN', 'HU', 'LN', 'LU', 'ON', 'OR', 'RN', 'RU', 'TN', 'VS']
+        self.NNs_data = self.split_data_into_N_NNs()
 
         if not self.pass_model:
+
+            GN, GU, HN, HU = GlorotNormal(seed=42), GlorotUniform(seed=42), HeNormal(seed=42), HeUniform(seed=42)
+            LN, LU, ON, OR = LecunNormal(seed=42), LecunUniform(seed=42), Ones, Orthogonal(seed=42)
+            RN, RU, TN, VS = RandomNormal(seed=42), RandomUniform(seed=42), TruncatedNormal(seed=42), VarianceScaling(seed=42)
+
+            self.initializers = [GN, GU, HN, HU, LN, LU, ON, OR, RN, RU, TN, VS]
+            self.initializers_labels = ['GN', 'GU', 'HN', 'HU', 'LN', 'LU', 'ON', 'OR', 'RN', 'RU', 'TN', 'VS']
+
             models = []
             for NN_no in range(self.NN_number):
                 for initializer in self.initializers:
@@ -129,15 +133,23 @@ class NNModel:
                     model = self.create_model(initializer)
                     models.append(model)
                    
-            self.models_list = models 
+            self.models_list = models
 
+            train_model_no = 0
+            for NN_no in range(len(self.NNs_data)):
+                for initializer in self.initializers_labels:
 
-        train_model_no = 0
-        for NN_no in range(len(self.NNs_data)):
-            for initializer in self.initializers_labels:
+                    self.train_model(train_model_no, NN_no, initializer)
+                    train_model_no += 1
+                    
+        else:
 
-                self.train_model(train_model_no, NN_no, initializer)
-                train_model_no += 1
+            train_model_no = 0
+            for NN_no in range(len(self.NNs_data)):
+                for initializer in self.NN_initializers_labels_custom:
+
+                    self.train_model(train_model_no, NN_no, initializer)
+                    train_model_no += 1
 
 
     def gather_data_path_into_df(self) -> None:
@@ -159,7 +171,7 @@ class NNModel:
         self.df_data_path = data
 
 
-    def split_data_into_N_CNN(self) -> list:
+    def split_data_into_N_NNs(self) -> list:
         """
         ...
         """
@@ -273,8 +285,10 @@ class NNModel:
             shuffle=False,
             validate_filenames=True)
 
-
-        model_name = os.path.join(self.models_dir_name, 'Model_' + str(NN_no) + '_' + initializer + '.h5')
+        start_NN_date = '_' + str(df_train['DateTime'][0])[:10]
+        print('Start_date', start_NN_date)
+        print(self.models_list[train_model_no].summary())
+        model_name = os.path.join(self.models_dir_name, 'Model_' + str(NN_no) + '_' + initializer + start_NN_date + '.h5')
         model_ckpoint = ModelCheckpoint(model_name, monitor='val_acc', mode='max', verbose = self.verbose, save_best_only=True, save_weights_only=False)
         early_stoping = EarlyStopping(monitor='val_acc', min_delta=0.001, patience=self.patience, verbose=self.verbose)
 
@@ -289,17 +303,21 @@ class NNModel:
         print(f'Net: {NN_no} initializer: {initializer}\nTrain Accuracy: {max_acc_train*100}%\nValidation Accuracy: {max_acc_validation*100}%')
 
 
-        self.evaluate_model(NN_no, initializer, validation_data, df_validation, test_data, df_test, model_name)
+        self.evaluate_model(NN_no, initializer, validation_data, df_validation, test_data, df_test, model_name, start_NN_date)
                                                         
                                                         
-    def evaluate_model(self, NN_no, initializer, validation_data, df_validation, test_data, df_test, model_name) -> None:
+    def evaluate_model(self, NN_no, initializer, validation_data, df_validation, test_data, df_test, model_name, start_NN_date) -> None:
         """
         ...
         """
 
-        best_model = load_model(model_name, custom_objects = {"ChannelAttention": ChannelAttention,
-                                                              "SpatialAttention": SpatialAttention, 
-                                                              "SeqSelfAttention": SeqSelfAttention})
+        if not self.pass_model:
+            best_model = load_model(model_name, custom_objects = {"ChannelAttention": ChannelAttention,
+                                                                  "SpatialAttention": SpatialAttention, 
+                                                                  "SeqSelfAttention": SeqSelfAttention})
+        else:
+            best_model = load_model(model_name)
+
 
         ####################   VALIDATION   ####################
 
@@ -307,11 +325,10 @@ class NNModel:
         print(f'Validation (Best Model) Accuracy: {scores_validation[1]*100}%')
 
         model_prediction_validation = best_model.predict(validation_data)
-        col_val_name = 'Prediction_validation_' + str(NN_no) + str(initializer)
+        col_val_name = 'Prediction_validation_' + str(NN_no) + str(initializer) + start_NN_date
         df_validation[col_val_name] = model_prediction_validation
 
-        if initializer == 'VS':
-            df_validation.to_csv(os.path.join(self.predictions_dir_name, col_val_name + '.csv'), index=False)
+        df_validation.to_csv(os.path.join(self.predictions_dir_name, col_val_name + '.csv'), index=False)
 
 
         ####################   TEST   ####################
@@ -320,11 +337,10 @@ class NNModel:
         print(f'Test Accuracy: {scores_test[1]*100}%')
 
         model_prediction_test = best_model.predict(test_data)
-        col_test_name = 'Prediction_test_' + str(NN_no) + str(initializer)
+        col_test_name = 'Prediction_test_' + str(NN_no) + str(initializer) + start_NN_date
         df_test[col_test_name] = model_prediction_test  
         
-        if initializer == 'VS':
-            df_test.to_csv(os.path.join(self.predictions_dir_name, col_test_name + '.csv'), index=False)
+        df_test.to_csv(os.path.join(self.predictions_dir_name, col_test_name + '.csv'), index=False)
 
 
     
