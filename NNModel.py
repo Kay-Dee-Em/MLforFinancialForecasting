@@ -108,8 +108,11 @@ class NNModel:
         ...
         """
         
-        os.mkdir(self.models_dir_name)
-        os.mkdir(self.predictions_dir_name)
+        if self.pass_model:
+            
+            os.mkdir(self.models_dir_name)
+            os.mkdir(self.predictions_dir_name)
+
         self.gather_data_path_into_df()
 
         self.train_img_data = ImageDataGenerator(rescale=1/255)  
