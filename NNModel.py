@@ -107,11 +107,14 @@ class NNModel:
         """
         ...
         """
-        
-        if self.pass_model:
-            
+
+
+        if not os.path.isdir(self.models_dir_name):
             os.mkdir(self.models_dir_name)
+
+        if not os.path.isdir(self.predictions_dir_name):
             os.mkdir(self.predictions_dir_name)
+
 
         self.gather_data_path_into_df()
 
