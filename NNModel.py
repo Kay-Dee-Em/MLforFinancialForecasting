@@ -13,9 +13,11 @@ from tensorflow.keras.initializers import Orthogonal, RandomNormal, RandomUnifor
 from tensorflow.keras.optimizers import SGD
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 
-
 from keras_self_attention import SeqSelfAttention
 from NNModelAuxiliary import ChannelAttention, SpatialAttention, StopOnPoint, ReshapeLayer
+
+import gc
+from keras import backend as K
 
 os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
 os.environ["TF_GPU_ALLOCATOR"]="cuda_malloc_async"
@@ -131,30 +133,26 @@ class NNModel:
             self.initializers = [GN, GU, HN, HU, LU, OR, RN, RU, TN, VS]
             self.initializers_labels = ['GN', 'GU', 'HN', 'HU', 'LU', 'OR', 'RN', 'RU', 'TN', 'VS']
 
-            models = []
+            self.models_list = []
             for NN_no in range(self.NN_number):
-                for initializer in self.initializers:
+                for init_no, initializer in enumerate(self.initializers):
 
                     model = self.create_model(initializer)
-                    models.append(model)
-                   
-            self.models_list = models
+                    self.models_list.append(model)
+                    self.train_model(NN_no, self.initializers_labels[init_no])
 
-            train_model_no = 0
-            for NN_no in range(len(self.NNs_data)):
-                for initializer in self.initializers_labels:
-
-                    self.train_model(train_model_no, NN_no, initializer)
-                    train_model_no += 1
+                    K.clear_session()
+                    del model
+                    gc.collect()
+                    self.models_list = []
                     
         else:
 
-            train_model_no = 0
             for NN_no in range(len(self.NNs_data)):
                 for initializer in self.NN_initializers_labels_custom:
 
-                    self.train_model(train_model_no, NN_no, initializer)
-                    train_model_no += 1
+                    self.train_model(NN_no, initializer)
+                    
 
 
     def gather_data_path_into_df(self) -> None:
@@ -164,7 +162,7 @@ class NNModel:
 
         dfs = []
         for number, subfolder in enumerate(['SHORT', 'LONG']):
-            images = glob.glob(self.imgs_path + '/{}/*.png'.format(subfolder))  
+            images = glob.glob(self.imgs_path + f'/{subfolder}/*.png')  
             dates = [dt.split('/')[-1].split('\\')[-1].split('.')[0].replace('_', '-') for dt in images]
             data_class = pd.DataFrame({'Image': images, 'Label': [str(number) + '_' + subfolder] * len(images), 'Date': dates})
             data_class['Date'] = pd.to_datetime(data_class['Date'])
@@ -235,10 +233,10 @@ class NNModel:
         model.add(SpatialAttention(40))
         
         model.add(Lambda(ReshapeLayer))
-        model.add(LSTM(32, kernel_initializer=initializer,  dropout=0.4, return_sequences=True))
-        model.add(SeqSelfAttention(attention_width=16))
+        model.add(LSTM(512, kernel_initializer=initializer,  dropout=0.4, return_sequences=True))
+        model.add(SeqSelfAttention(attention_width=256))
         model.add(Flatten())
-        model.add(Dense(1024, kernel_initializer=initializer,  activation=LeakyReLU(alpha=0.1)))
+        model.add(Dense(2048, kernel_initializer=initializer,  activation=LeakyReLU(alpha=0.1)))
         model.add(Dense(1, kernel_initializer=initializer,  activation="sigmoid"))
         
         model.compile(optimizer=SGD(learning_rate=0.001, decay=1e-6, momentum=0.9, nesterov=True) , loss=self.loss, metrics=self.metric)
@@ -246,7 +244,7 @@ class NNModel:
         return model
 
 
-    def train_model(self, train_model_no, NN_no, initializer) -> None:
+    def train_model(self, NN_no, initializer) -> None:
         """
         ...
         """
@@ -292,26 +290,26 @@ class NNModel:
 
         start_NN_date = '_' + str(df_train['DateTime'][0])[:10]
         print('NN train start:', start_NN_date[1:])
-        #print(self.models_list[train_model_no].summary())
-        model_name = os.path.join(self.models_dir_name, 'Model_' + str(NN_no) + '_' + initializer + start_NN_date + '.h5')
+        print(self.models_list[0].summary())
+        model_name = os.path.join(self.models_dir_name, 'Model_' + initializer + start_NN_date + '.h5')
         model_ckpoint = ModelCheckpoint(model_name, monitor='val_acc', mode='max', verbose = self.verbose, save_best_only=True, save_weights_only=False)
         early_stoping = EarlyStopping(monitor='val_acc', min_delta=0.001, patience=self.patience, verbose=self.verbose)
 
-        model_fit = self.models_list[train_model_no].fit(train_data,
-                                                         epochs=self.epochs,
-                                                         validation_data=validation_data,
-                                                         callbacks=[early_stoping, model_ckpoint, StopOnPoint(0.65)],
-                                                         verbose=self.verbose)
+        model_fit = self.models_list[0].fit(train_data,
+                                            epochs=self.epochs,
+                                            validation_data=validation_data,
+                                            callbacks=[early_stoping, model_ckpoint, StopOnPoint(0.65)],
+                                            verbose=self.verbose)
 
         max_acc_train = max(model_fit.history['acc'])
         max_acc_validation = max(model_fit.history['val_acc'])
         print(f'Net: {NN_no} initializer: {initializer}\nTrain Accuracy: {max_acc_train*100}%\nValidation Accuracy: {max_acc_validation*100}%')
 
 
-        self.evaluate_model(NN_no, initializer, validation_data, df_validation, test_data, df_test, model_name, start_NN_date)
+        self.evaluate_model(initializer, validation_data, df_validation, test_data, df_test, model_name, start_NN_date)
                                                         
                                                         
-    def evaluate_model(self, NN_no, initializer, validation_data, df_validation, test_data, df_test, model_name, start_NN_date) -> None:
+    def evaluate_model(self, initializer, validation_data, df_validation, test_data, df_test, model_name, start_NN_date) -> None:
         """
         ...
         """
@@ -330,7 +328,7 @@ class NNModel:
         print(f'Validation (Best Model) Accuracy: {scores_validation[1]*100}%')
 
         model_prediction_validation = best_model.predict(validation_data)
-        col_val_name = 'Prediction_validation_' + str(NN_no) + initializer + start_NN_date
+        col_val_name = 'Prediction_validation_' + initializer + start_NN_date
         df_validation[col_val_name] = model_prediction_validation
 
         if not self.pass_model:
@@ -346,7 +344,7 @@ class NNModel:
         print(f'Test Accuracy: {scores_test[1]*100}%')
 
         model_prediction_test = best_model.predict(test_data)
-        col_test_name = 'Prediction_test_' + str(NN_no) + initializer + start_NN_date
+        col_test_name = 'Prediction_test_' + initializer + start_NN_date
         df_test[col_test_name] = model_prediction_test  
         
         if not self.pass_model:
