@@ -49,11 +49,13 @@ class NNModel:
                  models_list: list=None,
                  NN_number: int=9,
                  NN_initializers_labels_custom: list=['GN'],
+                 custom_nn_objects: dict={"ChannelAttention": ChannelAttention, "SpatialAttention": SpatialAttention},
                  epochs: int=100,
                  loss: str='binary_crossentropy',
                  metric: str='acc',
                  patience: int=20,
-                 verbose: int=1):
+                 verbose: int=1,
+                 remove_model: bool=False):
 
 
         self.project_path = project_path
@@ -70,11 +72,13 @@ class NNModel:
         self.models_list = models_list
         self.NN_number = NN_number
         self.NN_initializers_labels_custom = NN_initializers_labels_custom
+        self.custom_nn_objects = custom_nn_objects
         self.epochs = epochs
         self.loss = loss
         self.metric = metric
         self.patience = patience
         self.verbose = verbose
+        self.remove_model = remove_model
 
 
     def __str__(self) -> str:
@@ -98,11 +102,13 @@ class NNModel:
                 models_list = {self.models_list},\n \
                 NN_number = {self.NN_number},\n \
                 NN_initializers_labels_custom = {self.NN_initializers_labels_custom},\n \
+                custom_nn_objects = {self.custom_nn_objects},\n \
                 epochs = {self.epochs},\n \
                 loss = {self.loss},\n \
                 metric = {self.metric},\n \
                 patience = {self.patience},\n \
-                verbose = {self.verbose})')
+                verbose = {self.verbose},\n \
+                remove_model = {self.remove_model})')
 
 
     def create_train_and_evalute_model(self) -> None:
@@ -148,7 +154,7 @@ class NNModel:
                     
         else:
 
-            for NN_no in range(len(self.NNs_data)):
+            for NN_no in range(len(self.NN_number)):
                 for initializer in self.NN_initializers_labels_custom:
 
                     self.train_model(NN_no, initializer)
@@ -209,37 +215,37 @@ class NNModel:
         """
         
         model=Sequential()
-        model.add(Conv2D(32, kernel_size=(3,3), kernel_initializer=initializer,  input_shape=(40, 40, 3), activation=LeakyReLU(alpha=0.1), padding='same'))
+        model.add(Conv2D(32, kernel_size=(3,3), kernel_initializer=initializer, input_shape=(40, 40, 3), activation=LeakyReLU(alpha=0.1), padding='same'))
         model.add(BatchNormalization())
-        model.add(Conv2D(32, kernel_size=(3,3), kernel_initializer=initializer,  activation=LeakyReLU(alpha=0.1), padding='same'))
+        model.add(Conv2D(32, kernel_size=(3,3), kernel_initializer=initializer, activation=LeakyReLU(alpha=0.1), padding='same'))
         model.add(BatchNormalization())
         model.add(ChannelAttention(32, 8))
         model.add(SpatialAttention(40))
         model.add(Dropout(0.4))
 
-        model.add(Conv2D(64, kernel_size=(3,3), kernel_initializer=initializer,  activation=LeakyReLU(alpha=0.1), padding='same'))
+        model.add(Conv2D(64, kernel_size=(3,3), kernel_initializer=initializer, activation=LeakyReLU(alpha=0.1), padding='same'))
         model.add(BatchNormalization())
-        model.add(Conv2D(64, kernel_size=(3,3), kernel_initializer=initializer,  activation=LeakyReLU(alpha=0.1), padding='same'))
+        model.add(Conv2D(64, kernel_size=(3,3), kernel_initializer=initializer, activation=LeakyReLU(alpha=0.1), padding='same'))
         model.add(BatchNormalization())
         model.add(ChannelAttention(64, 8))
         model.add(SpatialAttention(40))
         model.add(Dropout(0.4))
 
-        model.add(Conv2D(128, kernel_size=(3,3), kernel_initializer=initializer,  activation=LeakyReLU(alpha=0.1), padding='same'))
+        model.add(Conv2D(128, kernel_size=(3,3), kernel_initializer=initializer, activation=LeakyReLU(alpha=0.1), padding='same'))
         model.add(BatchNormalization())
-        model.add(Conv2D(128, kernel_size=(3,3), kernel_initializer=initializer,  activation=LeakyReLU(alpha=0.1), padding='same'))
+        model.add(Conv2D(128, kernel_size=(3,3), kernel_initializer=initializer, activation=LeakyReLU(alpha=0.1), padding='same'))
         model.add(BatchNormalization())
         model.add(ChannelAttention(128, 8))
         model.add(SpatialAttention(40))
         
         model.add(Lambda(ReshapeLayer))
-        model.add(LSTM(512, kernel_initializer=initializer,  dropout=0.4, return_sequences=True))
-        model.add(SeqSelfAttention(attention_width=256))
+        model.add(LSTM(512, kernel_initializer=initializer, dropout=0.4, return_sequences=False))
+        #model.add(SeqSelfAttention(attention_width=256))
         model.add(Flatten())
-        model.add(Dense(2048, kernel_initializer=initializer,  activation=LeakyReLU(alpha=0.1)))
-        model.add(Dense(1, kernel_initializer=initializer,  activation="sigmoid"))
+        model.add(Dense(4096, kernel_initializer=initializer, activation=LeakyReLU(alpha=0.1)))
+        model.add(Dense(1, kernel_initializer=initializer, activation="sigmoid"))
         
-        model.compile(optimizer=SGD(learning_rate=0.001, decay=1e-6, momentum=0.9, nesterov=True) , loss=self.loss, metrics=self.metric)
+        model.compile(optimizer=SGD(learning_rate=0.001, decay=1e-6, momentum=0.9, nesterov=True), loss=self.loss, metrics=self.metric)
         
         return model
 
@@ -314,13 +320,7 @@ class NNModel:
         ...
         """
 
-        if not self.pass_model:
-            best_model = load_model(model_name, custom_objects = {"ChannelAttention": ChannelAttention,
-                                                                  "SpatialAttention": SpatialAttention, 
-                                                                  "SeqSelfAttention": SeqSelfAttention})
-        else:
-            best_model = load_model(model_name)
-
+        best_model = load_model(model_name, custom_objects = self.custom_nn_objects)
 
         ####################   VALIDATION   ####################
 
@@ -354,7 +354,7 @@ class NNModel:
             df_test.to_csv(os.path.join(self.predictions_dir_name, col_test_name + '.csv'), index=False)
 
 
-        if self.pass_model:
+        if self.remove_model:
             os.remove(model_name) 
 
 
