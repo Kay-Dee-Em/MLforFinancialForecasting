@@ -16,7 +16,7 @@ Auxiliary script to:
 
 """
 
-def strategy_visualization(df: pd.DataFrame):
+def strategy_visualization(df: pd.DataFrame, plots_dir_name: str) -> None:
 
     df_long = df[(df['DateTime'].dt.date.astype(str) >= '2021-12-03') & (df['DateTime'].dt.date.astype(str) < '2022-01-01')]
     df_long_next_day = df[(df['DateTime'].dt.date.astype(str) >= '2021-12-31') & (df['DateTime'].dt.date.astype(str) < '2022-01-04')][-9:]
@@ -87,7 +87,7 @@ def strategy_visualization(df: pd.DataFrame):
         plt.close()
 
 
-def cross_validation_visualization(df: pd.DataFrame):
+def cross_validation_visualization(df: pd.DataFrame, plots_dir_name: str) -> None:
 
     plt.rc('axes', axisbelow=True)
     fig, axs = plt.subplots(2, 1, figsize=(9,6), gridspec_kw={'height_ratios': [3, 1]})
@@ -145,7 +145,7 @@ def cross_validation_visualization(df: pd.DataFrame):
     plt.close()
 
 
-if __name__ == '__main__':
+def main() -> None:
 
     ig = IG.ImageGenerator(data_name = 'OIH_adjusted.txt', generate_only_df_data=True)
     ig.generate_images()
@@ -155,8 +155,16 @@ if __name__ == '__main__':
     if not os.path.isdir(plots_dir_name):
         os.mkdir(plots_dir_name)
 
-    strategy_visualization(ig.df)
-    cross_validation_visualization(ig.df)
+    strategy_visualization(ig.df, plots_dir_name)
+    cross_validation_visualization(ig.df, plots_dir_name)
+    
+
+
+if __name__ == '__main__':
+
+    main()
+
+
 
 
 

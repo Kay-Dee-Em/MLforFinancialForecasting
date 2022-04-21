@@ -49,7 +49,7 @@ class NNModel:
                  models_list: list=None,
                  NN_number: int=9,
                  NN_initializers_labels_custom: list=['GN'],
-                 custom_nn_objects: dict={"ChannelAttention": ChannelAttention, "SpatialAttention": SpatialAttention},
+                 custom_nn_objects: dict={"ChannelAttention": ChannelAttention, "SpatialAttention": SpatialAttention, "SeqSelfAttention": SeqSelfAttention},
                  epochs: int=100,
                  loss: str='binary_crossentropy',
                  metric: str='acc',
@@ -239,10 +239,10 @@ class NNModel:
         model.add(SpatialAttention(40))
         
         model.add(Lambda(ReshapeLayer))
-        model.add(LSTM(512, kernel_initializer=initializer, dropout=0.4, return_sequences=False))
-        #model.add(SeqSelfAttention(attention_width=256))
+        model.add(LSTM(1024, kernel_initializer=initializer, dropout=0.4, return_sequences=True))
+        model.add(SeqSelfAttention(attention_width=512))
         model.add(Flatten())
-        model.add(Dense(4096, kernel_initializer=initializer, activation=LeakyReLU(alpha=0.1)))
+        model.add(Dense(8192, kernel_initializer=initializer, activation=LeakyReLU(alpha=0.1)))
         model.add(Dense(1, kernel_initializer=initializer, activation="sigmoid"))
         
         model.compile(optimizer=SGD(learning_rate=0.001, decay=1e-6, momentum=0.9, nesterov=True), loss=self.loss, metrics=self.metric)
