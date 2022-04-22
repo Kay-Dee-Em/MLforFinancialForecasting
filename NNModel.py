@@ -47,6 +47,7 @@ class NNModel:
                  interval_in_month: int=3,
                  pass_model: bool=False,
                  models_list: list=None,
+                 print_model: bool=True,
                  NN_number: int=9,
                  NN_initializers_labels_custom: list=['GN'],
                  custom_nn_objects: dict={"ChannelAttention": ChannelAttention, "SpatialAttention": SpatialAttention, "SeqSelfAttention": SeqSelfAttention},
@@ -70,6 +71,7 @@ class NNModel:
         self.interval_in_month = interval_in_month
         self.pass_model = pass_model
         self.models_list = models_list
+        self.print_model = print_model
         self.NN_number = NN_number
         self.NN_initializers_labels_custom = NN_initializers_labels_custom
         self.custom_nn_objects = custom_nn_objects
@@ -100,6 +102,7 @@ class NNModel:
                 interval_in_month = {self.interval_in_month},\n \
                 pass_model = {self.pass_model},\n \
                 models_list = {self.models_list},\n \
+                print_model = {self.print_model},\n \
                 NN_number = {self.NN_number},\n \
                 NN_initializers_labels_custom = {self.NN_initializers_labels_custom},\n \
                 custom_nn_objects = {self.custom_nn_objects},\n \
@@ -296,7 +299,10 @@ class NNModel:
 
         start_NN_date = '_' + str(df_train['DateTime'][0])[:10]
         print('NN train start:', start_NN_date[1:])
-        print(self.models_list[0].summary())
+
+        if self.print_model:
+            print(self.models_list[0].summary())
+        
         model_name = os.path.join(self.models_dir_name, 'Model_' + initializer + start_NN_date + '.h5')
         model_ckpoint = ModelCheckpoint(model_name, monitor='val_acc', mode='max', verbose = self.verbose, save_best_only=True, save_weights_only=False)
         early_stoping = EarlyStopping(monitor='val_acc', min_delta=0.001, patience=self.patience, verbose=self.verbose)

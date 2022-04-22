@@ -38,9 +38,10 @@ def strategy_visualization(df: pd.DataFrame, plots_dir_name: str) -> None:
             nans[::freqs_break[i]] = df_agg
             strategy.loc[:, freq] = nans
 
-
     fig_names = ['LONG_31_12_2021_line', 'SHORT_09_11_2021_line', 'LONG_31_12_2021_polar', 'SHORT_09_11_2021_polar']
 
+
+    ####################   LINEAR PLOTS   ####################
     for number, strategy in enumerate(dfs_strategy):
         plt.figure(figsize=(10,10))
 
@@ -69,6 +70,7 @@ def strategy_visualization(df: pd.DataFrame, plots_dir_name: str) -> None:
         plt.close()
 
 
+    ####################   POLAR PLOTS   ####################
     for number, strategy in enumerate(dfs_strategy):
         fig, ax = plt.subplots(figsize=(10,10), subplot_kw={'projection': 'polar'})
 
@@ -113,7 +115,6 @@ def cross_validation_visualization(df: pd.DataFrame, plots_dir_name: str) -> Non
         df_validation_chunk = df.loc[df['DateTime'].between(train_end, validation_end, inclusive='left')].reset_index(drop=True)
         df_test_chunk = df.loc[df['DateTime'].between(validation_end, test_end, inclusive='left')].reset_index(drop=True)
 
-
         x_train = df_train_chunk['DateTime']
         y_train = [start_value] * len(x_train)
         x_validation = df_validation_chunk['DateTime']
@@ -127,13 +128,12 @@ def cross_validation_visualization(df: pd.DataFrame, plots_dir_name: str) -> Non
             axs[1].plot(x_test, y_test, color='green', linewidth=4, label='zbiór testowy')
         
         else:
-            axs[1].plot(x_train, y_train, color='red', linewidth=4, )
+            axs[1].plot(x_train, y_train, color='red', linewidth=4)
             axs[1].plot(x_validation, y_validation, color='orange', linewidth=4)
             axs[1].plot(x_test, y_test, color='green', linewidth=4)
 
         train_start += relativedelta(months=3)
         start_value += 5
-
 
     axs[1].margins(0)
     axs[1].set_ylim([0, start_value])
