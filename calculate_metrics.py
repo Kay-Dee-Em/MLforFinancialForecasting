@@ -263,13 +263,14 @@ def calc_metrics_acc_thold_and_share(df_summary: pd.DataFrame, combination: list
 
 
 
-def calc_combinations(combinations_list: list, train_starts: list, initializers_labels: list, combs_res_dir_name: str, calc_one_by_one_or_all: str) -> None:
+def calc_combinations(combinations_list: list, train_starts: list, initializers_labels: list, path_type_list: list, combs_res_dir_name: str, calc_one_by_one_or_all: str) -> None:
     """"
     Calculate combinations for main and side model based on one by one neural network or all intervals at once
 
     :param combinations_list: list
     :param train_starts: list, list od start dates in format 'YYYY-MM-DD'
     :param initializers_labels: list
+    :param path_type_list: list of tuples -> (predictions_dir_name, model_type) e.g. [('PREDICTIONS', 'MAIN APPROACH'), ('PREDICTIONS_SIDE', 'SIDE APPROACH')]
     :param combs_res_dir_name: str, directory where files will be saved
     :param calc_one_by_one_or_all: str, calculate one by one neural network (one interval) or group and then calculate (all intervals at the same time) (options: 'ONE_BY_ONE', 'ALL_AT_ONCE')
     :return: None
@@ -280,7 +281,7 @@ def calc_combinations(combinations_list: list, train_starts: list, initializers_
 
     pool = Pool(os.cpu_count())
 
-    for nn_path_type in list(zip(['PREDICTIONS', 'PREDICTIONS_SIDE'], ['MAIN APPROACH', 'SIDE APPROACH'])):
+    for nn_path_type in path_type_list:
         for dataset_name in ['validation', 'test']:
 
             if calc_one_by_one_or_all == 'ONE_BY_ONE':
@@ -374,7 +375,6 @@ def determine_best_combination_for_one_by_one_interval(comb_list: list, train_st
         # An approach treated as an average of predictions (func calc_metrics_for_combinations)
         val_max = df_result['MG_gain'].nlargest(int(np.floor(comb_list*0.25))).mean()
         val_avg_max = df_result['AVG_MG_gain'].nlargest(int(np.floor(comb_list*0.25))).mean()
-        #print('MG',val_max ,'AVG',val_avg_max)
 
         if val_max > val_avg_max: val_max_score += 1 
         else: val_avg_max_score += 1
@@ -606,10 +606,11 @@ def main() -> None:
     train_starts = ['2001-04-02', '2001-07-02', '2001-10-01', '2002-01-02', '2002-04-01', '2002-07-01', '2002-10-01', '2003-01-02', '2003-04-01']
     combinations_list = sum([list(map(list, combinations(initializers_labels, i))) for i in range(len(initializers_labels) + 1)], [])
 
-    combinations_results_dir_name = r'MAX_PREDICTIONS/'
+    predictions_dir_name_nn_type = [('PREDICTIONS', 'MAIN APPROACH'), ('PREDICTIONS_SIDE', 'SIDE APPROACH')]
+    combinations_results_dir_name = predictions_dir_name_nn_type[0][0] + '_MAX_PREDICTIONS/'
 
-    calc_combinations(combinations_list, train_starts, initializers_labels, combinations_results_dir_name, 'ALL_AT_ONCE')
-    calc_combinations(combinations_list, train_starts, initializers_labels, combinations_results_dir_name, 'ONE_BY_ONE')
+    calc_combinations(combinations_list, train_starts, initializers_labels, predictions_dir_name_nn_type, combinations_results_dir_name, 'ALL_AT_ONCE')
+    calc_combinations(combinations_list, train_starts, initializers_labels, predictions_dir_name_nn_type, combinations_results_dir_name, 'ONE_BY_ONE')
     determine_best_combination_and_evaluate(combinations_list, train_starts, combinations_results_dir_name) 
 
 

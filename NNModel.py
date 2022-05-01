@@ -157,7 +157,7 @@ class NNModel:
                     
         else:
 
-            for NN_no in range(len(self.NN_number)):
+            for NN_no in range(self.NN_number):
                 for initializer in self.NN_initializers_labels_custom:
 
                     self.train_model(NN_no, initializer)
