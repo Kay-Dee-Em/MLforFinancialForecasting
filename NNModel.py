@@ -245,7 +245,7 @@ class NNModel:
         model.add(LSTM(1024, kernel_initializer=initializer, dropout=0.4, return_sequences=True))
         model.add(SeqSelfAttention(attention_width=512))
         model.add(Flatten())
-        model.add(Dense(8192, kernel_initializer=initializer, activation=LeakyReLU(alpha=0.1)))
+        model.add(Dense(4096, kernel_initializer=initializer, activation=LeakyReLU(alpha=0.1)))
         model.add(Dense(1, kernel_initializer=initializer, activation="sigmoid"))
         
         model.compile(optimizer=SGD(learning_rate=0.001, decay=1e-6, momentum=0.9, nesterov=True), loss=self.loss, metrics=self.metric)
