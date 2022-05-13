@@ -36,8 +36,14 @@ class ImageGenerator:
   project_path: str, default: os.getcwd(),
       Path where the files will be created
 
+  separator: str, default: ',',
+      Data seperator
+
+  datetime_format: str, default: '%m/%d/%Y %H:%M',
+      Datetime format, e.g. 12/31/2021 16:00
+
   imgs_dir_name: str default: 'GAF',
-      Dir name for images 
+      Dir name for images
 
   base_freq: str, default: '1h,
       Base frequency for data grouping 
@@ -75,6 +81,8 @@ class ImageGenerator:
   def __init__(self,
                data_name: str,
                project_path: str=os.getcwd(),
+               separator: str=',',
+               datetime_format: str='%m/%d/%Y %H:%M',
                imgs_dir_name: str='GAF', 
                base_freq: str='1h', 
                h_start: str='9:30', 
@@ -90,6 +98,8 @@ class ImageGenerator:
 
     self.data_name = data_name
     self.project_path = project_path
+    self.separator = separator
+    self.datetime_format = datetime_format
     self.imgs_dir_name = imgs_dir_name
     self.base_freq = base_freq
     self.h_start = h_start
@@ -112,6 +122,8 @@ class ImageGenerator:
 
     return(f'\nImageGenerator(data_name = {self.data_name},\n \
               project_path = {self.project_path},\n \
+              separator = {self.separator},\n \
+              datetime_format = {self.datetime_format},\n \
               imgs_dir_name = {self.imgs_dir_name},\n \
               base_freq = {self.base_freq},\n \
               h_start = {self.h_start},\n \
@@ -161,15 +173,15 @@ class ImageGenerator:
     logger.info('PROCESSING DATA')
 
     col_names = ['Date', 'Time', 'Open', 'High', 'Low', 'Close', 'Volume']
-    df = pd.read_csv(os.path.join(self.project_path, self.data_name), names=col_names, header=None)
-    df['DateTime'] = pd.to_datetime(df['Date'] + ' ' + df['Time'], infer_datetime_format=True)
+    df = pd.read_csv(os.path.join(self.project_path, self.data_name), names=col_names, header=None, sep=self.separator)
+    df['DateTime'] = pd.to_datetime(df['Date'] + ' ' + df['Time'], format=self.datetime_format)
     df = df[['DateTime', 'Close']]
     df['Close'].replace(to_replace=0, method='ffill', inplace=True)
     df = df[df['DateTime'].dt.weekday < 5].set_index('DateTime').between_time(self.h_start,self.h_end).reset_index()
     df = df.groupby(pd.Grouper(key='DateTime', freq=self.base_freq)).mean().reset_index()
     df = df.loc[df['Close'].notnull()].reset_index(drop=True)     
     
-    data_start = ts(df['DateTime'].min().year,1,31)
+    data_start = ts(df['DateTime'].min().year,1,1)
     data_end = ts(df['DateTime'].max().year+1,1,1)
     df = df[~df['DateTime'].isin(Calendar().holidays(start=data_start, end=data_end))].fillna(method='ffill').reset_index(drop=True)
     self.df = df
