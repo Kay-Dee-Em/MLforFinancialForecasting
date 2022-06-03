@@ -158,8 +158,11 @@ class ImageGenerator:
     GAF = os.path.join(self.project_path, self.imgs_dir_name)
     LONG = os.path.join(self.project_path, self.imgs_dir_name, 'LONG')
     SHORT = os.path.join(self.project_path, self.imgs_dir_name, 'SHORT')
-    os.makedirs(LONG)
-    os.makedirs(SHORT)
+
+    if not os.path.isdir(GAF): os.mkdir(GAF)
+    if not os.path.isdir(LONG): os.mkdir(LONG)
+    if not os.path.isdir(SHORT): os.mkdir(SHORT)
+
     self.imgs_path = GAF
 
 
