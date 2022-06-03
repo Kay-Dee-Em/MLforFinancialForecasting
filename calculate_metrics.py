@@ -22,9 +22,6 @@ def calc_combinations(combinations_list: list, train_starts: list, initializers_
     :param specific_combination_params: tuple(combination, thold, share, gain_type, dataset_name, nn_type, nn_type, method, top_comb_share, gain)
     :return: None
     """
-    
-    if not os.path.isdir(combs_res_dir_name):
-        os.mkdir(combs_res_dir_name)
 
     pool = Pool(os.cpu_count())
 
@@ -106,33 +103,44 @@ def main() -> None:
     predictions_dir_name_nn_type = [('PREDICTIONS', nn_type)]
     combinations_results_dir_name = predictions_dir_name_nn_type[0][0] + '_MAX_PREDICTIONS/'
 
+    if not os.path.isdir(combinations_results_dir_name):
+        os.mkdir(combinations_results_dir_name)
+
+    combinations_best_daily_prediction_dir_name = predictions_dir_name_nn_type[0][0] + '_DAILY_BEST_COMBINATIONS/'
+
+    if not os.path.isdir(combinations_best_daily_prediction_dir_name):
+        os.mkdir(combinations_best_daily_prediction_dir_name)
+
     calc_combinations(combinations_list, train_starts, initializers_labels, predictions_dir_name_nn_type, combinations_results_dir_name, 'ALL_AT_ONCE')
     calc_combinations(combinations_list, train_starts, initializers_labels, predictions_dir_name_nn_type, combinations_results_dir_name, 'ONE_BY_ONE')
     determine_best_combination_and_evaluate(combinations_list, train_starts, nn_type, combinations_results_dir_name) 
 
     # Save predictions per day
-    df = pd.read_csv(os.path.join(combinations_results_dir_name, 'MAX_combinations_results.csv'))
-    df = df.loc[(df['which_best'] == 'BEST') & (df['which_strategy'].isin(['ALL_AT_ONCE', 'ONE_BY_ONE_TESTED_ON_ALL_AT_ONCE'])) & (df['which_approach'] == nn_type)]
+    for strategy in [['ALL_AT_ONCE', 'ONE_BY_ONE_TESTED_ON_ALL_AT_ONCE'], ['ONE_BY_ONE', 'ALL_AT_ONCE_TESTED_ON_ONE_BY_ONE']]:
 
-    for combination in df['combination'].unique():
+        df = pd.read_csv(os.path.join(combinations_results_dir_name, 'MAX_combinations_results.csv'))
+        df = df.loc[(df['which_best'] == 'BEST') & (df['which_strategy'].isin(strategy)) & (df['which_approach'] == nn_type)]
 
-        thold = df.loc[df['combination'] == combination, 'treshold'].values[0]
-        share = df.loc[df['combination'] == combination, 'share'].values[0] 
-        method = df.loc[df['combination'] == combination, 'which_strategy'].values[0]
-        
-        if method == 'ONE_BY_ONE_TESTED_ON_ALL_AT_ONCE': method = 'OBOT'
-        elif method == 'ALL_AT_ONCE': method - 'AAOM'
-        elif method == 'ONE_BY_ONE': method = 'OBOM'
-        elif method == 'ALL_AT_ONCE_TESTED_ON_ONE_BY_ONE': method = 'AAOT'        
+        for combination in df['combination'].unique():
 
-        top_comb_share = df.loc[df['combination'] == combination, 'which_top_comb_share'].values[0]
-        gain = df.loc[df['combination'] == combination, 'which_gain'].values[0]
+            thold = df.loc[df['combination'] == combination, 'treshold'].values[0]
+            share = df.loc[df['combination'] == combination, 'share'].values[0] 
+            method = df.loc[df['combination'] == combination, 'which_strategy'].values[0]
+            
+            if method == 'ONE_BY_ONE_TESTED_ON_ALL_AT_ONCE': method = 'OBOT'
+            elif method == 'ALL_AT_ONCE': method = 'AAOM'
+            elif method == 'ONE_BY_ONE': method = 'OBOM'
+            elif method == 'ALL_AT_ONCE_TESTED_ON_ONE_BY_ONE': method = 'AAOT'        
 
-        combination = combination.replace('[', '').replace(']', '').replace('\'', '').replace(' ', '')
-        combination = list(combination.split(','))
+            top_comb_share = df.loc[df['combination'] == combination, 'which_top_comb_share'].values[0]
+            gain = df.loc[df['combination'] == combination, 'which_gain'].values[0]
 
-        params = (combination, thold, share, combinations_results_dir_name, ['test'], nn_type, method, top_comb_share, gain)
-        calc_combinations(combinations_list, train_starts, initializers_labels, predictions_dir_name_nn_type, combinations_results_dir_name, 'ALL_AT_ONCE', True, params)
+            combination = combination.replace('[', '').replace(']', '').replace('\'', '').replace(' ', '')
+            combination = list(combination.split(','))
+
+            params = (combination, thold, share, combinations_best_daily_prediction_dir_name, ['test'], nn_type, method, top_comb_share, gain)
+
+            calc_combinations(combinations_list, train_starts, initializers_labels, predictions_dir_name_nn_type, combinations_results_dir_name, strategy[0], True, params)
 
 
 

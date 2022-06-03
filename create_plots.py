@@ -509,11 +509,12 @@ def main() -> None:
     cross_validation_visualization(ig.df, plots_dir_name = plots_dir_name)
     cross_validation_test_visualization(ig.df, plots_dir_name = plots_dir_name)
     test_data_changes_histogram(ig.df_closing_prices, plots_dir_name = plots_dir_name)
+    
+    predictions_daily_dir_name = 'PREDICTIONS_DAILY_BEST_COMBINATIONS'
+    prediction_change_visualization(predictions_daily_dir_name, plots_dir_name)
+    prediction_visualization(predictions_daily_dir_name, plots_dir_name)
 
     predictions_dir_name = 'PREDICTIONS_MAX_PREDICTIONS'
-    prediction_change_visualization(predictions_dir_name, plots_dir_name)
-    prediction_visualization(predictions_dir_name, plots_dir_name)
-
     df_predictions = pd.read_csv(os.path.join(predictions_dir_name, 'MAX_combinations_results.csv'))
     predictions_heatmap_overall(df_predictions, heatmaps_dir_name)  
     predictions_heatmap_by_interval(df_predictions, heatmaps_dir_name, train_starts)
