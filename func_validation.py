@@ -269,7 +269,7 @@ def calc_metrics_acc_thold_and_share(df_summary: pd.DataFrame, combination: list
         else:
             file_name = specific_combination_params[5] + '_Predictions_for_' + specific_combination_params[6] + '_' + str(specific_combination_params[7]) + '_' + specific_combination_params[8] + '.xlsx'
 
-        df_smry.to_excel(os.path.join(specific_combination_params[3], file_name))
+        df_smry.to_excel(os.path.join(specific_combination_params[3], file_name), index=None)
 
 
     else:
