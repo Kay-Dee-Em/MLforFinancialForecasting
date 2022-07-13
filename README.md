@@ -43,3 +43,88 @@ Results:
 - `PREDICTIONS_DAILY_BEST_COMBINATIONS/` -> raw (binary) predictions for chosen validation models for test datasets for each method of evaluation
 - `HEATMAPS/` -> heatmaps of possible results for chosen validation models for test datasets for the time series dataset
 - `PLOTS/` -> examples of plots
+
+
+### Approach (default parameters values)
+
+Raw time series data (without headers):
+
+<table>
+<thead>
+  <tr>
+    <th>Date</th>
+    <th>Time</th>
+    <th>Open</th>
+    <th>High</th>
+    <th>Low</th>
+    <th>Close</th>
+    <th>Volume</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>...</td>
+    <td>...</td>
+    <td>...</td>
+    <td>...</td>
+    <td>...</td>
+    <td>...</td>
+    <td>...</td>
+  </tr>
+  <tr>
+    <td>04/12/2011</td>
+    <td>14:01</td>
+    <td>862.79</td>
+    <td>863.86</td>
+    <td>862.79</td>
+    <td>863.8</td>
+    <td>4050</td>
+  </tr>
+  <tr>
+    <td>04/12/2011</td>
+    <td>14:02</td>
+    <td>863.86</td>
+    <td>864.36</td>
+    <td>863.8</td>
+    <td>864.36</td>
+    <td>1577</td>
+  </tr>
+  <tr>
+    <td>04/12/2011</td>
+    <td>14:03</td>
+    <td>864.25</td>
+    <td>864.58</td>
+    <td>864.19</td>
+    <td>864.25</td>
+    <td>1649</td>
+  </tr>
+  <tr>
+    <td>...</td>
+    <td>...</td>
+    <td>...</td>
+    <td>...</td>
+    <td>...</td>
+    <td>...</td>
+    <td>...</td>
+  </tr>
+</tbody>
+</table>
+
+is cut to variables: `Date`, `Time` and `Close`, then aggreagted (id est - mean) into 4 different intervals: `1 hour`, `2 hours`, `4 hours` and `1 day` and keeping `20 days` (step equals 1 day but considered period equals 20 days), the last 20 data points is choosen for each of the 4 intervals. Each of the intervals is scaled, transormed into polar coordinates and then processed into Gramian Angular Difference Field image. Finally the 4 images (each 10X10X3) are concatenated into 1 (40X40X3). Decision about optimal investemnt strategy is determined. If Close price in 21th day is higher than Close price in 20th interal day, then the strategy is `LONG -> 1`, else `SHORT -> 0`.
+
+Generating images (neural network input data) in graphs:
+
+<p float="left">
+  <img alt='line' src="https://github.com/Kay-Dee-Em/MLforFinancialForecasting/blob/main/PLOTS/LONG_2021_12_31_line.png" width="320" height="320"/>
+  <img alt='polar' src="https://github.com/Kay-Dee-Em/MLforFinancialForecasting/blob/main/PLOTS/LONG_2021_12_31_polar.png" width="320" height="320"/> 
+  <img alt='GADF' src="https://github.com/Kay-Dee-Em/MLforFinancialForecasting/blob/main/PLOTS/LONG_2021_12_31_GADF.png" width="320" height="320"/>
+</p>
+
+Generated images are used as input data to neural network model which default architecture is CNN+LSTM+Attention neural network...
+<!---
+Validation process chooses the best model accoring to each validation cateogry.
+And finally the best models are tested.
+-->
+
+
+
