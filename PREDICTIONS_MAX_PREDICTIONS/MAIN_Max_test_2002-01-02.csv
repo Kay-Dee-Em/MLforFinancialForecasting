@@ -1,4 +1,4 @@
-,combination,MG_treshold,MG_share,MG_accuracy,MG_gain,MA_treshold,MA_share,MA_accuracy,MA_gain,AVG_MG_treshold,AVG_MG_share,AVG_MG_accuracy,AVG_MG_gain,AVG_MA_treshold,AVG_MA_share,AVG_MA_accuracy,AVG_MA_gain
+,combination,MG_threshold,MG_share,MG_accuracy,MG_gain,MA_threshold,MA_share,MA_accuracy,MA_gain,AVG_MG_threshold,AVG_MG_share,AVG_MG_accuracy,AVG_MG_gain,AVG_MA_threshold,AVG_MA_share,AVG_MA_accuracy,AVG_MA_gain
 0,['GN'],0.01,0.6,,-389.15,0.005,0.6,0.4772234273318872,-389.15,0.01,0.6,,-389.15,0.005,0.6,0.4772234273318872,-389.15
 1,['GU'],0.01,0.6,0.5297619047619048,389.15,0.01,0.6,0.5297619047619048,389.15,0.01,0.6,0.5297619047619048,389.15,0.01,0.6,0.5297619047619048,389.15
 2,['HN'],0.0,0.6,0.5297619047619048,384.27566666666667,0.005,0.6,0.53,381.03566666666666,0.0,0.6,0.5297619047619048,384.27566666666667,0.005,0.6,0.53,381.03566666666666

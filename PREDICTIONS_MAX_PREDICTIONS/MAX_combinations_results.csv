@@ -1,4 +1,4 @@
-combination,treshold,share,accuracy,gain,avg_accuracy,avg_gain,which_strategy,which_approach,which_gain,which_accuracy,which_top_comb_share,which_best,which_date
+combination,threshold,share,accuracy,gain,avg_accuracy,avg_gain,which_strategy,which_approach,which_gain,which_accuracy,which_top_comb_share,which_best,which_date
 "['HN', 'HU', 'LU', 'OR', 'RN', 'RU', 'TN']",0.0,0.1,0.4711729622266402,-264.3300000000001,0.5129224652087475,239.75,ONE_BY_ONE,MAIN,gain,accuracy,0.1,,2001-04-02
 "['HN', 'HU', 'LU', 'OR', 'RN', 'RU', 'TN']",0.0,0.2,0.4850894632206759,-206.53999999999985,0.5129224652087475,239.75,ONE_BY_ONE,MAIN,gain,accuracy,0.1,,2001-04-02
 "['HN', 'HU', 'LU', 'OR', 'RN', 'RU', 'TN']",0.0,0.3,0.5009940357852882,129.7700000000001,0.5129224652087475,239.75,ONE_BY_ONE,MAIN,gain,accuracy,0.1,,2001-04-02
