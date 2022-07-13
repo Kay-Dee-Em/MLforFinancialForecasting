@@ -115,9 +115,9 @@ is cut to variables: `Date`, `Time` and `Close`, then aggreagted (id est - mean)
 Generating images (neural network input data) in graphs:
 
 <p float="left">
-  <img alt='line' src="https://github.com/Kay-Dee-Em/MLforFinancialForecasting/blob/main/PLOTS/LONG_2021_12_31_line.png" width="320" height="320"/>
-  <img alt='polar' src="https://github.com/Kay-Dee-Em/MLforFinancialForecasting/blob/main/PLOTS/LONG_2021_12_31_polar.png" width="320" height="320"/> 
-  <img alt='GADF' src="https://github.com/Kay-Dee-Em/MLforFinancialForecasting/blob/main/PLOTS/LONG_2021_12_31_GADF.png" width="320" height="320"/>
+  <img alt='line' src="https://github.com/Kay-Dee-Em/MLforFinancialForecasting/blob/main/PLOTS/LONG_2021_12_31_line.png" width="200" height="200"/>
+  <img alt='polar' src="https://github.com/Kay-Dee-Em/MLforFinancialForecasting/blob/main/PLOTS/LONG_2021_12_31_polar.png" width="200" height="200"/> 
+  <img alt='GADF' src="https://github.com/Kay-Dee-Em/MLforFinancialForecasting/blob/main/PLOTS/LONG_2021_12_31_GADF.png" width="200" height="200"/>
 </p>
 
 Generated images are used as input data to neural network model which default architecture is CNN+LSTM+Attention neural network...
