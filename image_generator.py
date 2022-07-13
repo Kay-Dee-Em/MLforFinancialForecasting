@@ -9,7 +9,7 @@ from pyts.image import GramianAngularField
 import matplotlib
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import ImageGrid
-import logger as log
+import logger_formatter as log
 import logging
 
 matplotlib.use("Agg")
