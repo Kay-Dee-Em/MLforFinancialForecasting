@@ -38,9 +38,8 @@ Auxiliary scripts:
 Results:
 
 - `GAF/` -> GAF images for the time series dataset
-- `HEATMAPS/` -> heatmaps of possible results for chosen validation models for test datasets for the time series dataset
-- `PLOTS/` -> examples of plots
 - `PREDICTIONS/` -> neural networks' predictions
 - `PREDICTIONS_MAX_PREDICTIONS/` -> all and max possible predictions outcomes for validation, and test intervals for each combination (default: 1023 (the 10th element vector) - all possible combinations for n-th element vector of initial neural networks' weights)
 - `PREDICTIONS_DAILY_BEST_COMBINATIONS/` -> raw (binary) predictions for chosen validation models for test datasets for each method of evaluation
-
+- `HEATMAPS/` -> heatmaps of possible results for chosen validation models for test datasets for the time series dataset
+- `PLOTS/` -> examples of plots
